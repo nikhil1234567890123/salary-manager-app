@@ -1,98 +1,89 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { useRouter } from "expo-router";
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function DashboardScreen() {
+  const router = useRouter();
 
-export default function HomeScreen() {
+  // Mock Data
+  const remainingBalance = 24500;
+  const spentThisMonth = 15500;
+  const totalSalary = 40000;
+  const progressPerc = (spentThisMonth / totalSalary) * 100;
+
+  const dailySafeSpend = 850;
+  const spentToday = 320;
+  const isSafeToday = spentToday <= dailySafeSpend;
+  const predictedSavings = 12000;
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View className="flex-1 bg-gray-50">
+      <ScrollView className="flex-1 px-6 pt-16 pb-24">
+        {/* Header Section */}
+        <View className="flex-row justify-between items-center mb-8">
+          <View>
+            <Text className="text-slate-500 font-medium">Good Morning,</Text>
+            <Text className="text-2xl font-bold text-slate-900">Ayush</Text>
+          </View>
+          <View className="w-10 h-10 bg-indigo-100 rounded-full items-center justify-center">
+            <Text className="text-indigo-600 font-bold">A</Text>
+          </View>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {/* Main Balance Card */}
+        <View className="bg-indigo-600 rounded-3xl p-6 shadow-sm shadow-indigo-300 mb-6">
+          <Text className="text-indigo-100 font-medium mb-1">Remaining this month</Text>
+          <Text className="text-4xl font-bold text-white mb-6">₹ {remainingBalance.toLocaleString()}</Text>
+
+          <View className="bg-indigo-700/50 rounded-2xl p-4">
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-indigo-100 font-medium text-sm">Monthly Usage</Text>
+              <Text className="text-white font-semibold text-sm">{Math.round(progressPerc)}%</Text>
+            </View>
+            <View className="h-2 bg-indigo-900/40 rounded-full overflow-hidden">
+              <View
+                className="h-full bg-green-400 rounded-full"
+                style={{ width: `${progressPerc}%` }}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Today's Stats Row */}
+        <View className="flex-row justify-between mb-6 space-x-4">
+          <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm shadow-slate-100 border border-slate-100">
+            <Text className="text-slate-500 text-xs font-medium mb-1">Daily Safe Spend</Text>
+            <Text className="text-xl font-bold text-slate-900">₹ {dailySafeSpend}</Text>
+          </View>
+          <View className={`flex-1 rounded-2xl p-4 shadow-sm border ${isSafeToday ? 'bg-emerald-50 border-emerald-100 shadow-emerald-50' : 'bg-red-50 border-red-100 shadow-red-50'}`}>
+            <Text className={`text-xs font-medium mb-1 ${isSafeToday ? 'text-emerald-600' : 'text-red-600'}`}>Spent Today</Text>
+            <Text className={`text-xl font-bold ${isSafeToday ? 'text-emerald-700' : 'text-red-700'}`}>₹ {spentToday}</Text>
+          </View>
+        </View>
+
+        {/* Prediction Card */}
+        <View className="bg-white rounded-2xl p-5 shadow-sm shadow-slate-100 border border-slate-100 items-center flex-row">
+          <View className="w-12 h-12 bg-indigo-50 rounded-full items-center justify-center mr-4">
+            <IconSymbol name="star.fill" size={20} color="#4f46e5" />
+          </View>
+          <View className="flex-1">
+            <Text className="text-slate-500 text-xs font-medium mb-1">Smart Prediction</Text>
+            <Text className="text-slate-900 font-semibold text-sm">
+              At this pace, you will save <Text className="text-green-600 font-bold">₹ {predictedSavings.toLocaleString()}</Text> this month.
+            </Text>
+          </View>
+        </View>
+
+        <View className="h-20" /> {/* Spacer for scroll padding */}
+      </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        onPress={() => router.push("/add-expense")}
+        className="absolute bottom-6 right-6 w-16 h-16 bg-indigo-600 rounded-full items-center justify-center shadow-lg shadow-indigo-300"
+      >
+        <IconSymbol name="plus" size={32} color="#ffffff" />
+      </TouchableOpacity>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});

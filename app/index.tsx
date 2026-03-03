@@ -176,7 +176,7 @@ export default function SplashScreen() {
                 <TouchableOpacity
                     onPress={() => router.push("/login")}
                     activeOpacity={0.8}
-                    className="bg-[#D3A77A] rounded-full shadow-xl shadow-black/60"
+                    className="bg-[#D3A77A] rounded-full shadow-xl shadow-black/60 mb-4"
                     style={{ elevation: 10 }}
                 >
                     <View className="py-5 rounded-full items-center justify-center flex-row bg-[#D1A677] border-t border-t-[#EACFA7] border-b border-b-[#A87D56]">
@@ -185,6 +185,16 @@ export default function SplashScreen() {
                         </Text>
                         <Ionicons name="arrow-forward" size={18} color="#2B231A" />
                     </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={() => router.push("/setup")}
+                    activeOpacity={0.7}
+                    className="items-center justify-center py-2"
+                >
+                    <Text className="text-[#A7A4A0] font-bold text-sm tracking-widest uppercase">
+                        Continue as Guest
+                    </Text>
                 </TouchableOpacity>
             </Animated.View>
         </View>

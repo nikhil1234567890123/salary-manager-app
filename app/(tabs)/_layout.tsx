@@ -12,14 +12,14 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#4f46e5', // Indigo-600
-        tabBarInactiveTintColor: '#94a3b8', // Slate-400
+        tabBarActiveTintColor: '#D3A77A', // Gold
+        tabBarInactiveTintColor: '#A7A4A0', // Matte Silver
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: '#2C2B29', // Matte dark background
           borderTopWidth: 1,
-          borderTopColor: '#f1f5f9', // Slate-100
+          borderTopColor: '#4E4B47', // Subtle dark border
           elevation: 0,
           shadowOpacity: 0,
           height: 60,

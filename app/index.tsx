@@ -12,12 +12,28 @@ import Animated, {
 } from "react-native-reanimated";
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { height } = Dimensions.get('window');
 
 export default function SplashScreen() {
     const router = useRouter();
+    const [checked, setChecked] = useState(false);
+
+    // Check if onboarding is complete — if not, redirect
+    useEffect(() => {
+        (async () => {
+            try {
+                const done = await AsyncStorage.getItem('@onboarding_complete');
+                if (done !== 'true') {
+                    router.replace('/onboarding');
+                    return;
+                }
+            } catch { }
+            setChecked(true);
+        })();
+    }, []);
 
     // Shared values
     const logoScale = useSharedValue(0);
@@ -174,7 +190,7 @@ export default function SplashScreen() {
                 style={[buttonStyle, { position: 'absolute', bottom: 48, width: '100%', paddingHorizontal: 35 }]}
             >
                 <TouchableOpacity
-                    onPress={() => router.push("/login")}
+                    onPress={() => router.replace("/(tabs)")}
                     activeOpacity={0.8}
                     className="bg-[#D3A77A] rounded-full shadow-xl shadow-black/60 mb-4"
                     style={{ elevation: 10 }}
@@ -188,12 +204,12 @@ export default function SplashScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    onPress={() => router.push("/setup")}
+                    onPress={() => router.push("/login")}
                     activeOpacity={0.7}
                     className="items-center justify-center py-2"
                 >
                     <Text className="text-[#A7A4A0] font-bold text-sm tracking-widest uppercase">
-                        Continue as Guest
+                        Sign In
                     </Text>
                 </TouchableOpacity>
             </Animated.View>

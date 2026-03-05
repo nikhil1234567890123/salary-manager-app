@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { formatCurrency } from '@/utils/formatters';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -131,7 +132,7 @@ const CalculatorOverlay = ({ isVisible, onClose, onApply }: { isVisible: boolean
                 <View className="bg-[#1E1D1C] rounded-[24px] p-5 mb-6 border border-[#3E3A35] items-end min-h-[100px] justify-center shadow-inner">
                     <Text className="text-[#A7A4A0] text-lg font-medium mb-1 tracking-widest">{expr || "0"}</Text>
                     <Text className="text-[40px] font-black text-[#D3A77A] leading-[48px]">
-                        {result ? `₹${result}` : "₹0"}
+                        {result ? `₹${formatCurrency(parseFloat(result))}` : "₹0"}
                     </Text>
                 </View>
 
@@ -372,7 +373,7 @@ export default function SalarySetupScreen() {
                                 Daily Limit
                             </Text>
                             <Text className={`text-4xl font-black ${salaryNum > 0 ? 'text-[#F2EFEB]' : 'text-[#65625E]'}`}>
-                                ₹{dailySafeSpend}
+                                ₹{formatCurrency(dailySafeSpend)}
                             </Text>
                         </View>
                         <View className={`w-12 h-12 rounded-full items-center justify-center border ${salaryNum > 0 ? 'bg-[#D3A77A]/10 border-[#D3A77A]/30' : 'bg-[#383633] border-[#4E4B47]'

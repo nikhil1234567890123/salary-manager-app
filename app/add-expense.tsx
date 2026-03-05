@@ -2,15 +2,33 @@ import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useFinance } from '@/context/FinanceContext';
+import { AlertDialog } from '@/components/ConfirmDialog';
+import { formatCurrency } from '@/utils/formatters';
 
 export default function AddExpenseScreen() {
     const router = useRouter();
+    const { addExpense } = useFinance();
     const [amount, setAmount] = useState("");
     const [note, setNote] = useState("");
+    const [savedAmount, setSavedAmount] = useState(0);
+    const [showSavedAlert, setShowSavedAlert] = useState(false);
 
-    const handleSave = () => {
-        // Save logic goes here
-        router.back();
+    const handleSave = async () => {
+        const parsedAmount = parseFloat(amount);
+        if (!parsedAmount || parsedAmount <= 0) return;
+
+        await addExpense({
+            amount: parsedAmount,
+            category: 'General',
+            note: note || '',
+            date: new Date().toISOString().split('T')[0],
+        });
+
+        setSavedAmount(parsedAmount);
+        setAmount("");
+        setNote("");
+        setShowSavedAlert(true);
     };
 
     return (
@@ -63,6 +81,19 @@ export default function AddExpenseScreen() {
                     <Text className="text-white text-center font-bold text-lg">Save Expense</Text>
                 </TouchableOpacity>
             </View>
+
+            <AlertDialog
+                visible={showSavedAlert}
+                title="Saved! ✅"
+                message={`₹${formatCurrency(savedAmount)} expense recorded.`}
+                buttonText="OK"
+                variant="success"
+                onClose={() => {
+                    setShowSavedAlert(false);
+                    router.back();
+                }}
+            />
         </KeyboardAvoidingView>
     );
 }
+

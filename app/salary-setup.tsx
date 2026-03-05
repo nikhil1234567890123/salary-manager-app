@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { formatCurrency } from '@/utils/formatters';
+import { useFinance } from '@/context/FinanceContext';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -195,9 +196,14 @@ const CalculatorOverlay = ({ isVisible, onClose, onApply }: { isVisible: boolean
 
 export default function SalarySetupScreen() {
     const router = useRouter();
-    const [salary, setSalary] = useState("");
-    const [fixedExpenses, setFixedExpenses] = useState("");
-    const [savingsGoal, setSavingsGoal] = useState("");
+    const { salary: existingSalary, setSalaryConfig } = useFinance();
+    const [salary, setSalary] = useState(existingSalary ? existingSalary.monthlySalary.toString() : "");
+    const [fixedExpenses, setFixedExpenses] = useState(existingSalary ? existingSalary.fixedExpenses.toString() : "");
+    const [savingsGoal, setSavingsGoal] = useState(
+        existingSalary?.savingsTarget !== undefined ? existingSalary.savingsTarget.toString() :
+            (existingSalary ? Math.round(existingSalary.monthlySalary * existingSalary.savingsRate).toString() : "")
+    );
+    const [creditDate, setCreditDate] = useState(existingSalary?.salaryCreditDate ? existingSalary.salaryCreditDate.toString() : "");
     const [isCalcVisible, setIsCalcVisible] = useState(false);
 
     // Background Animations
@@ -264,15 +270,13 @@ export default function SalarySetupScreen() {
     const handleFinalize = async () => {
         if (salaryNum <= 0) return;
         try {
-            await AsyncStorage.setItem('stipend_setup', JSON.stringify({
-                totalSalary: salaryNum,
+            await setSalaryConfig({
+                monthlySalary: salaryNum,
                 fixedExpenses: fixedExpensesNum,
-                predictedSavings: savingsNum,
-                dailySafeSpend: dailySafeSpend,
-                remainingBalance: balanceAfterFixed,
-                spentThisMonth: 0,
-                spentToday: 0
-            }));
+                savingsRate: salaryNum > 0 ? savingsNum / salaryNum : 0.2,
+                savingsTarget: savingsNum,
+                salaryCreditDate: parseInt(creditDate) || undefined
+            });
             router.replace("/(tabs)");
         } catch (e) {
             console.error("failed to save data", e);
@@ -361,6 +365,15 @@ export default function SalarySetupScreen() {
                         onChangeText={setSavingsGoal}
                         icon="trending-up"
                         delay={300}
+                    />
+
+                    <PremiumInput
+                        label="Salary Credit Date (1-31) (Optional)"
+                        placeholder="e.g. 1"
+                        value={creditDate}
+                        onChangeText={setCreditDate}
+                        icon="calendar"
+                        delay={400}
                     />
                 </View>
 

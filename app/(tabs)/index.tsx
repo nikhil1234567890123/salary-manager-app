@@ -129,6 +129,28 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </Animated.View>
 
+        {/* Temporary Testing Row */}
+        <Animated.View entering={FadeInDown.duration(600).delay(100)} className="flex-row mb-6" style={{ gap: 10 }}>
+          <TouchableOpacity
+            onPress={() => {
+              const { triggerExpenseDetected } = require('@/services/notificationService');
+              triggerExpenseDetected(250, "Swiggy");
+            }}
+            className="flex-1 bg-[#3E3A35] py-3 rounded-xl items-center border border-[#5D5A54]"
+          >
+            <Text className="text-[#D3A77A] font-bold text-xs uppercase tracking-widest">Test Instant</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              const { testDelayedNotification } = require('@/services/notificationService');
+              testDelayedNotification();
+            }}
+            className="flex-1 bg-[#3E3A35] py-3 rounded-xl items-center border border-[#5D5A54]"
+          >
+            <Text className="text-[#D3A77A] font-bold text-xs uppercase tracking-widest">Test 5s Delay</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
         {/* Salary Setup (inline, collapsible) */}
         {(showSetup || !hasSalary) && (
           <Animated.View entering={FadeInDown.duration(500)} className="bg-[#383633] rounded-[28px] p-6 mb-6 border border-[#4E4B47] shadow-lg shadow-black/40">

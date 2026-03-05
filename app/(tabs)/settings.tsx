@@ -6,11 +6,13 @@ import { useFinance } from '@/context/FinanceContext';
 import { StatusBar } from "expo-status-bar";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import ConfirmDialog, { AlertDialog } from '@/components/ConfirmDialog';
+import { useSettings } from '@/store/settingsStore';
+import { exportCSV } from '@/utils/exportReport';
 
 export default function SettingsScreen() {
-    const [isDarkMode, setIsDarkMode] = useState(true);
+    const { settings, updateSetting, toggleTheme } = useSettings();
     const router = useRouter();
-    const { resetMonth } = useFinance();
+    const { resetMonth, expenses } = useFinance();
 
     // Dialog state
     const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -24,6 +26,10 @@ export default function SettingsScreen() {
         setShowResetConfirm(false);
         await resetMonth();
         setShowResetDone(true);
+    };
+
+    const handleExport = async () => {
+        await exportCSV(expenses);
     };
 
     return (
@@ -60,12 +66,70 @@ export default function SettingsScreen() {
                                 <Text className="text-[#F2EFEB] font-semibold text-base">Dark Mode</Text>
                             </View>
                             <Switch
-                                value={isDarkMode}
-                                onValueChange={setIsDarkMode}
+                                value={settings.isDarkMode}
+                                onValueChange={toggleTheme}
                                 trackColor={{ false: '#4E4B47', true: '#D3A77A' }}
-                                thumbColor={isDarkMode ? '#F2EFEB' : '#A7A4A0'}
+                                thumbColor={settings.isDarkMode ? '#F2EFEB' : '#A7A4A0'}
                             />
                         </View>
+
+                        <View className="flex-row items-center justify-between p-5 border-b border-[#4E4B47]">
+                            <View className="flex-row items-center">
+                                <View className="w-10 h-10 bg-[#3E3A35] rounded-full items-center justify-center mr-4 border border-[#5D5A54]">
+                                    <Ionicons name="chatbubbles" size={18} color="#D3A77A" />
+                                </View>
+                                <Text className="text-[#F2EFEB] font-semibold text-base">Auto Expense Detect</Text>
+                            </View>
+                            <Switch
+                                value={settings.autoExpenseDetection}
+                                onValueChange={(val) => updateSetting('autoExpenseDetection', val)}
+                                trackColor={{ false: '#4E4B47', true: '#D3A77A' }}
+                                thumbColor={settings.autoExpenseDetection ? '#F2EFEB' : '#A7A4A0'}
+                            />
+                        </View>
+
+                        <View className="flex-row items-center justify-between p-5 border-b border-[#4E4B47]">
+                            <View className="flex-row items-center">
+                                <View className="w-10 h-10 bg-[#3E3A35] rounded-full items-center justify-center mr-4 border border-[#5D5A54]">
+                                    <Ionicons name="notifications" size={18} color="#D3A77A" />
+                                </View>
+                                <Text className="text-[#F2EFEB] font-semibold text-base">Spending Alerts</Text>
+                            </View>
+                            <Switch
+                                value={settings.spendingAlerts}
+                                onValueChange={(val) => updateSetting('spendingAlerts', val)}
+                                trackColor={{ false: '#4E4B47', true: '#D3A77A' }}
+                                thumbColor={settings.spendingAlerts ? '#F2EFEB' : '#A7A4A0'}
+                            />
+                        </View>
+
+                        <View className="flex-row items-center justify-between p-5 border-b border-[#4E4B47]">
+                            <View className="flex-row items-center">
+                                <View className="w-10 h-10 bg-[#3E3A35] rounded-full items-center justify-center mr-4 border border-[#5D5A54]">
+                                    <Ionicons name="lock-closed" size={18} color="#D3A77A" />
+                                </View>
+                                <Text className="text-[#F2EFEB] font-semibold text-base">App Lock</Text>
+                            </View>
+                            <Switch
+                                value={settings.appLockEnabled}
+                                onValueChange={(val) => updateSetting('appLockEnabled', val)}
+                                trackColor={{ false: '#4E4B47', true: '#D3A77A' }}
+                                thumbColor={settings.appLockEnabled ? '#F2EFEB' : '#A7A4A0'}
+                            />
+                        </View>
+
+                        <TouchableOpacity
+                            onPress={handleExport}
+                            className="flex-row items-center justify-between p-5 border-b border-[#4E4B47]"
+                        >
+                            <View className="flex-row items-center">
+                                <View className="w-10 h-10 bg-[#3E3A35] rounded-full items-center justify-center mr-4 border border-[#5D5A54]">
+                                    <Ionicons name="download" size={18} color="#D3A77A" />
+                                </View>
+                                <Text className="text-[#F2EFEB] font-semibold text-base">Export Report</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={18} color="#65625E" />
+                        </TouchableOpacity>
 
                         <TouchableOpacity
                             onPress={handleResetMonth}

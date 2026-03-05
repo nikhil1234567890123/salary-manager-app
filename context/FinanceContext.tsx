@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { checkAndTriggerOverspendingAlert } from '@/services/notificationService';
 
 // ─── Types ────────────────────────────────────────────────────
 export interface SalaryConfig {
     monthlySalary: number;
     fixedExpenses: number;
     savingsRate: number;
+    savingsTarget?: number;
+    salaryCreditDate?: number;
 }
 
 export interface Expense {
@@ -51,10 +54,39 @@ const STORAGE_KEYS = {
 };
 
 // ─── Calculation helpers ──────────────────────────────────────
-function getRemainingDaysInMonth(): number {
+function getRemainingDays(creditDate?: number): number {
     const now = new Date();
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    return Math.max(lastDay - now.getDate(), 1);
+    if (!creditDate || creditDate < 1 || creditDate > 31) {
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        return Math.max(lastDay - now.getDate(), 1);
+    }
+
+    const currentDay = now.getDate();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // If today is before the credit date in the current month
+    if (currentDay < creditDate) {
+        return creditDate - currentDay;
+    }
+
+    // If today is on or after the credit date, calculate days until credit date next month
+    const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+    const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+
+    // Handle months with fewer days than credit date
+    const daysInNextMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
+    const targetDate = Math.min(creditDate, daysInNextMonth);
+
+    const nextCreditDate = new Date(nextYear, nextMonth, targetDate);
+    // Use UTC to avoid daylight saving time issues affecting day count
+    const utcNow = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    const utcNext = Date.UTC(nextCreditDate.getFullYear(), nextCreditDate.getMonth(), nextCreditDate.getDate());
+
+    const diffTime = Math.abs(utcNext - utcNow);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return Math.max(diffDays, 1);
 }
 
 function getTodayStr(): string {
@@ -62,11 +94,11 @@ function getTodayStr(): string {
 }
 
 function computeDashboard(salary: SalaryConfig, expenses: Expense[]): DashboardData {
-    const savings = Math.round(salary.monthlySalary * salary.savingsRate);
+    const savings = salary.savingsTarget !== undefined ? salary.savingsTarget : Math.round(salary.monthlySalary * salary.savingsRate);
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
     const spendableMoney = salary.monthlySalary - salary.fixedExpenses - savings;
     const remainingBalance = spendableMoney - totalExpenses;
-    const remainingDays = getRemainingDaysInMonth();
+    const remainingDays = getRemainingDays(salary.salaryCreditDate);
     const dailySafeSpend = remainingDays > 0 ? Math.round(Math.max(remainingBalance, 0) / remainingDays) : 0;
 
     // Calculate today's spending
@@ -145,9 +177,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         await AsyncStorage.setItem(STORAGE_KEYS.SALARY, JSON.stringify(config));
 
         // Also write to stipend_setup so the existing salary-setup screen stays in sync
-        const savingsNum = Math.round(config.monthlySalary * config.savingsRate);
+        const savingsNum = config.savingsTarget !== undefined ? config.savingsTarget : Math.round(config.monthlySalary * config.savingsRate);
         const balance = config.monthlySalary - config.fixedExpenses - savingsNum;
-        const daysLeft = getRemainingDaysInMonth();
+        const daysLeft = getRemainingDays(config.salaryCreditDate);
         const totalExp = expenses.reduce((s, e) => s + e.amount, 0);
         const todayStr = getTodayStr();
         const spentToday = expenses.filter(e => e.date === todayStr).reduce((s, e) => s + e.amount, 0);
@@ -178,7 +210,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             const newDashboard = computeDashboard(salary, updated);
             setDashboardData(newDashboard);
 
-            // Sync to stipend_setup for the home screen
             await AsyncStorage.setItem(STORAGE_KEYS.STIPEND_SETUP, JSON.stringify({
                 totalSalary: salary.monthlySalary,
                 fixedExpenses: salary.fixedExpenses,
@@ -188,6 +219,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                 spentThisMonth: newDashboard.totalExpenses,
                 spentToday: newDashboard.spentToday,
             }));
+
+            // Trigger notification
+            await checkAndTriggerOverspendingAlert(newDashboard.spentToday, newDashboard.dailySafeSpend);
         }
     }, [expenses, salary]);
 

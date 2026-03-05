@@ -129,7 +129,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Temporary Testing Row */}
+        {/* Temporary Testing Row
         <Animated.View entering={FadeInDown.duration(600).delay(100)} className="flex-row mb-6" style={{ gap: 10 }}>
           <TouchableOpacity
             onPress={() => {
@@ -149,7 +149,7 @@ export default function HomeScreen() {
           >
             <Text className="text-[#D3A77A] font-bold text-xs uppercase tracking-widest">Test 5s Delay</Text>
           </TouchableOpacity>
-        </Animated.View>
+        </Animated.View> */}
 
         {/* Salary Setup (inline, collapsible) */}
         {(showSetup || !hasSalary) && (

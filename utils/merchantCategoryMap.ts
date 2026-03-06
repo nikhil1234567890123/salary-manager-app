@@ -122,6 +122,7 @@ const MERCHANT_DATABASE: MerchantEntry[] = [
     { keyword: 'disney', category: 'Entertainment' },
     { keyword: 'spotify', category: 'Entertainment' },
     { keyword: 'prime video', category: 'Entertainment' },
+    { keyword: 'amazon prime', category: 'Entertainment' },
     { keyword: 'youtube', category: 'Entertainment' },
     { keyword: 'sony liv', category: 'Entertainment' },
     { keyword: 'zee5', category: 'Entertainment' },
@@ -133,6 +134,9 @@ const MERCHANT_DATABASE: MerchantEntry[] = [
     { keyword: 'movie', category: 'Entertainment' },
     { keyword: 'gaming', category: 'Entertainment' },
     { keyword: 'game', category: 'Entertainment' },
+    { keyword: 'apple music', category: 'Entertainment' },
+    { keyword: 'gaana', category: 'Entertainment' },
+    { keyword: 'wynk', category: 'Entertainment' },
 
     // ── Education ─────────────────────────────────────────────────
     { keyword: 'coursera', category: 'Education' },
@@ -140,13 +144,34 @@ const MERCHANT_DATABASE: MerchantEntry[] = [
     { keyword: 'unacademy', category: 'Education' },
     { keyword: 'byju', category: 'Education' },
     { keyword: 'vedantu', category: 'Education' },
-    { keyword: 'skill', category: 'Education' },
     { keyword: 'upgrad', category: 'Education' },
     { keyword: 'simplilearn', category: 'Education' },
     { keyword: 'school', category: 'Education' },
     { keyword: 'college', category: 'Education' },
     { keyword: 'tuition', category: 'Education' },
-    { keyword: 'book', category: 'Education' },
+    { keyword: 'hostel', category: 'Education' },
+    { keyword: 'warden', category: 'Education' },
+    { keyword: 'university', category: 'Education' },
+    { keyword: 'institute', category: 'Education' },
+    { keyword: 'academy', category: 'Education' },
+
+    // ── Bills & Subscriptions ─────────────────────────────────────
+    { keyword: 'google', category: 'Bills' },
+    { keyword: 'apple', category: 'Bills' },
+    { keyword: 'microsoft', category: 'Bills' },
+    { keyword: 'icloud', category: 'Bills' },
+    { keyword: 'gpay', category: 'Bills' },
+    { keyword: 'phonepe', category: 'Bills' },
+    { keyword: 'paytm', category: 'Bills' },
+    { keyword: 'cred', category: 'Bills' },
+    { keyword: 'bajaj finance', category: 'Bills' },
+    { keyword: 'bajaj finserv', category: 'Bills' },
+    { keyword: 'loan', category: 'Bills' },
+    { keyword: 'mutual fund', category: 'Bills' },
+    { keyword: 'sip', category: 'Bills' },
+    { keyword: 'groww', category: 'Bills' },
+    { keyword: 'zerodha', category: 'Bills' },
+    { keyword: 'upstox', category: 'Bills' },
 ];
 
 /**
@@ -196,6 +221,35 @@ export function normalizedMerchantName(text: string): string | null {
                 .split(' ')
                 .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
                 .join(' ');
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Scan the FULL SMS body for any known merchant name.
+ * This is used as a fallback when regex-based merchant extraction
+ * fails to extract the merchant from patterns like "trf to XYZ".
+ *
+ * For example, a Netflix UPI mandate SMS might not have "trf to Netflix"
+ * but the word "Netflix" appears somewhere in the message body.
+ *
+ * @param fullSmsBody - The entire SMS text
+ * @returns { merchant: string, category: string } or null
+ */
+export function scanBodyForMerchant(fullSmsBody: string): { merchant: string; category: string } | null {
+    if (!fullSmsBody) return null;
+
+    const lower = fullSmsBody.toLowerCase();
+
+    for (const entry of MERCHANT_DATABASE) {
+        if (lower.includes(entry.keyword)) {
+            const merchant = entry.keyword
+                .split(' ')
+                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(' ');
+            return { merchant, category: entry.category };
         }
     }
 

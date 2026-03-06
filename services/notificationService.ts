@@ -1,11 +1,29 @@
 import { SettingsService } from './settingsService';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+
+// Detect if running in Expo Go
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 // Lazy load expo-notifications to avoid Push-related errors in Expo Go at boot
 let notificationsHandlerSet = false;
 const getNotifications = () => {
-    const Notifications = require('expo-notifications');
-    if (!notificationsHandlerSet) {
-        try {
+    // CRITICAL: In SDK 54, even requiring expo-notifications in Expo Go can trigger a 
+    // FATAL crash because it internally tries to register push token listeners.
+    // We must bypass the require entirely in Expo Go.
+    if (isExpoGo) {
+        return {
+            setNotificationHandler: () => { },
+            getPermissionsAsync: async () => ({ status: 'undetermined' }),
+            requestPermissionsAsync: async () => ({ status: 'denied' }),
+            scheduleNotificationAsync: async () => 'mock-id',
+            SchedulableTriggerInputTypes: { TIME_INTERVAL: 'timeInterval' }
+        };
+    }
+
+    try {
+        const Notifications = require('expo-notifications');
+
+        if (!notificationsHandlerSet) {
             Notifications.setNotificationHandler({
                 handleNotification: async () => ({
                     shouldShowAlert: true,
@@ -16,11 +34,12 @@ const getNotifications = () => {
                 }),
             });
             notificationsHandlerSet = true;
-        } catch (error) {
-            console.warn("[Notifications] Setup deferred or failed:", error);
         }
+        return Notifications;
+    } catch (error) {
+        console.error("[Notifications] Failed to initialize:", error);
+        return null;
     }
-    return Notifications;
 };
 
 /**
@@ -29,6 +48,8 @@ const getNotifications = () => {
 export const requestNotificationPermission = async () => {
     try {
         const Notifications = getNotifications();
+        if (!Notifications) return false;
+
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
 
@@ -53,6 +74,8 @@ export const sendNotification = async (title: string, body: string, data: object
         if (!hasPermission) return;
 
         const Notifications = getNotifications();
+        if (!Notifications) return;
+
         await Notifications.scheduleNotificationAsync({
             content: {
                 title,
@@ -76,6 +99,8 @@ export const scheduleNotification = async (title: string, body: string, seconds:
         if (!hasPermission) return;
 
         const Notifications = getNotifications();
+        if (!Notifications) return;
+
         await Notifications.scheduleNotificationAsync({
             content: {
                 title,
@@ -99,7 +124,17 @@ export const scheduleNotification = async (title: string, body: string, seconds:
 export const triggerExpenseDetected = async (amount: number, merchant: string) => {
     await sendNotification(
         "💸 Expense Detected",
-        `₹${amount} spent at ${merchant}`
+        `₹${amount} spent at ${merchant}. Tap to confirm.`
+    );
+};
+
+/**
+ * Specific alert for automatically added expenses.
+ */
+export const triggerExpenseAutoAdded = async (amount: number, merchant: string) => {
+    await sendNotification(
+        "✨ Expense Auto-Added",
+        `₹${amount} spent at ${merchant} has been automatically recorded.`
     );
 };
 

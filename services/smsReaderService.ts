@@ -14,14 +14,15 @@
  *
  * The public API is stable — just swap the internal implementation.
  */
-
-import { Platform, Alert } from 'react-native';
+import { Platform, Alert, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SmsAndroid from 'react-native-get-sms-android';
 import { RawSmsMessage } from '@/models/detectedTransaction';
 
 const STORAGE_KEYS = {
     SMS_PERMISSION_GRANTED: '@sms_permission_granted',
     LAST_SMS_SCAN: '@last_sms_scan_timestamp',
+    SIMULATED_SMS_QUEUE: '@simulated_sms_queue',
 };
 
 // ─── Permission Handling ──────────────────────────────────────────
@@ -65,21 +66,28 @@ export async function requestSmsPermission(): Promise<boolean> {
                 {
                     text: 'Allow',
                     onPress: async () => {
-                        // ─── MOCK: Simulate granting permission ───────────────
-                        // In production, this would call:
-                        //   import { PermissionsAndroid } from 'react-native';
-                        //   const result = await PermissionsAndroid.request(
-                        //     PermissionsAndroid.PERMISSIONS.READ_SMS,
-                        //   );
-                        //   const granted = result === PermissionsAndroid.RESULTS.GRANTED;
-                        // ──────────────────────────────────────────────────────
+                        try {
+                            const result = await PermissionsAndroid.request(
+                                PermissionsAndroid.PERMISSIONS.READ_SMS,
+                                {
+                                    title: "SMS Access Required",
+                                    message: "We need SMS access to automatically track your expenses.",
+                                    buttonNeutral: "Ask Me Later",
+                                    buttonNegative: "Cancel",
+                                    buttonPositive: "OK"
+                                }
+                            );
+                            const granted = result === PermissionsAndroid.RESULTS.GRANTED;
 
-                        const granted = true; // Mock: always grant for dev
-                        await AsyncStorage.setItem(
-                            STORAGE_KEYS.SMS_PERMISSION_GRANTED,
-                            granted ? 'true' : 'false'
-                        );
-                        resolve(granted);
+                            await AsyncStorage.setItem(
+                                STORAGE_KEYS.SMS_PERMISSION_GRANTED,
+                                granted ? 'true' : 'false'
+                            );
+                            resolve(granted);
+                        } catch (err) {
+                            console.warn(err);
+                            resolve(false);
+                        }
                     },
                 },
             ],
@@ -110,6 +118,37 @@ export async function updateLastScanTimestamp(): Promise<void> {
 }
 
 /**
+ * Add a simulated SMS message to the queue.
+ * This is used for the "Manual Paste" and "Simulation Mode" features.
+ */
+export async function simulateIncomingSms(body: string, address: string = 'BANK-SMS'): Promise<void> {
+    try {
+        const queueStr = await AsyncStorage.getItem(STORAGE_KEYS.SIMULATED_SMS_QUEUE);
+        const queue: RawSmsMessage[] = queueStr ? JSON.parse(queueStr) : [];
+
+        const newMessage: RawSmsMessage = {
+            body,
+            address,
+            timestamp: Date.now(),
+        };
+
+        await AsyncStorage.setItem(
+            STORAGE_KEYS.SIMULATED_SMS_QUEUE,
+            JSON.stringify([newMessage, ...queue])
+        );
+    } catch (error) {
+        console.error('[SmsReader] Failed to simulate SMS:', error);
+    }
+}
+
+/**
+ * Clear all simulated messages.
+ */
+export async function clearSimulatedSms(): Promise<void> {
+    await AsyncStorage.removeItem(STORAGE_KEYS.SIMULATED_SMS_QUEUE);
+}
+
+/**
  * Read recent SMS messages since the given timestamp.
  *
  * ⚠️  MOCK IMPLEMENTATION — returns sample bank SMS messages.
@@ -126,39 +165,61 @@ export async function readRecentSms(
     const hasPermission = await hasSmsPermission();
     if (!hasPermission) return [];
 
-    // ─── MOCK DATA ────────────────────────────────────────────
-    // These simulate real bank SMS messages for testing.
-    // Replace this section with actual native SMS reading.
-    const now = Date.now();
-    const mockMessages: RawSmsMessage[] = [
-        {
-            body: 'INR 250 spent on UPI at Swiggy on 05-03-26. Avl Bal: INR 12,450.00. Ref: 123456789',
-            address: 'AD-HDFCBK',
-            timestamp: now - 3600000, // 1 hour ago
-        },
-        {
-            body: 'Rs 1200 debited from your account ending XX1234 for Amazon Pay. UPI Ref: 987654321',
-            address: 'VD-ICICIB',
-            timestamp: now - 7200000, // 2 hours ago
-        },
-        {
-            body: '₹450 paid to Uber via UPI on 05-03-26. Balance: ₹11,000.00',
-            address: 'JD-SBIBNK',
-            timestamp: now - 10800000, // 3 hours ago
-        },
-        {
-            body: 'Rs.320.00 was debited from A/c XX5678 to Zomato. IMPS Ref 456789123. Avl Bal Rs.10,680.00',
-            address: 'BZ-AXISBK',
-            timestamp: now - 14400000, // 4 hours ago
-        },
-        {
-            body: 'Dear Customer, INR 180 has been debited from your account for Ola ride. Ref: OLA123456',
-            address: 'AD-KOTKBK',
-            timestamp: now - 18000000, // 5 hours ago
-        },
-    ];
+    return new Promise(async (resolve) => {
+        try {
+            // First read simulated messages (these always work)
+            const queueStr = await AsyncStorage.getItem(STORAGE_KEYS.SIMULATED_SMS_QUEUE);
+            const simulated: RawSmsMessage[] = queueStr ? JSON.parse(queueStr) : [];
+            const newSimulated = simulated.filter((msg) => msg.timestamp > sinceTimestamp);
 
-    // Filter by sinceTimestamp (simulates "only new messages")
-    return mockMessages.filter((msg) => msg.timestamp > sinceTimestamp);
-    // ──────────────────────────────────────────────────────────
+            // If we are in Expo Go or SmsAndroid is not linked properly, it might be undefined/null
+            if (!SmsAndroid || !SmsAndroid.list) {
+                console.log("[SmsReader] Native SMS module not available (likely Expo Go). Using simulated only.");
+                return resolve(newSimulated);
+            }
+
+            // Read from native SMS inbox
+            const filter = {
+                box: 'inbox',
+                minDate: sinceTimestamp > 0 ? sinceTimestamp : Date.now() - (7 * 24 * 60 * 60 * 1000), // Max 7 days back if 0
+            };
+
+            SmsAndroid.list(
+                JSON.stringify(filter),
+                (fail: string) => {
+                    console.error("[SmsReader] Failed to list SMS:", fail);
+                    resolve(newSimulated); // Fallback to simulated
+                },
+                (count: number, smsListStr: string) => {
+                    try {
+                        const smsList = JSON.parse(smsListStr);
+                        const rawMessages: RawSmsMessage[] = smsList.map((sms: any) => ({
+                            body: sms.body,
+                            address: sms.address,
+                            timestamp: parseInt(sms.date, 10),
+                        }));
+
+                        // Filter specifically for likely bank messages
+                        const bankMessages = rawMessages.filter(msg => {
+                            if (!msg.address) return false;
+                            const addr = msg.address.toUpperCase();
+                            return /[A-Z]{2}-[A-Z0-9]+/.test(addr) || /^[A-Z0-9]+$/.test(addr);
+                        });
+
+                        // Combine native + simulated
+                        const allMessages = [...newSimulated, ...bankMessages];
+                        // Double check timestamps since we might have added raw messages
+                        resolve(allMessages.filter((msg) => msg.timestamp > sinceTimestamp));
+
+                    } catch (e) {
+                        console.error("[SmsReader] Parsing SMS failed:", e);
+                        resolve(newSimulated); // Fallback
+                    }
+                }
+            );
+        } catch (globalErr) {
+            console.error("[SmsReader] Unexpected error reading SMS:", globalErr);
+            resolve([]);
+        }
+    });
 }

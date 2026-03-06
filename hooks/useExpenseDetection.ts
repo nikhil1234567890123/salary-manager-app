@@ -32,6 +32,11 @@ import {
 } from '@/services/expenseDetectionService';
 import { generateSuggestions } from '@/services/smartSuggestionService';
 import { learnMerchant } from '@/services/merchantLearningService';
+import { simulateIncomingSms } from '@/services/smsReaderService';
+import {
+    triggerExpenseDetected,
+    triggerExpenseAutoAdded
+} from '@/services/notificationService';
 import { useFinance } from '@/context/FinanceContext';
 
 /** How often to scan for new SMS (ms) — 5 minutes */
@@ -71,7 +76,9 @@ export interface UseExpenseDetectionReturn {
     /** Whether the SMS scanner is currently running */
     isScanning: boolean;
     /** Manually trigger a scan */
-    triggerScan: () => Promise<void>;
+    triggerScan: () => Promise<number>;
+    /** Simulate an incoming SMS (for Manual Paste / Test). Returns count of new items found. */
+    simulateSms: (body: string, address?: string) => Promise<number>;
 }
 
 export function useExpenseDetection(): UseExpenseDetectionReturn {
@@ -84,25 +91,55 @@ export function useExpenseDetection(): UseExpenseDetectionReturn {
 
     // ─── Android SMS Scanning ─────────────────────────────────────
 
-    const runScan = useCallback(async () => {
-        if (Platform.OS !== 'android') return;
+    const runScan = useCallback(async (): Promise<number> => {
+        if (Platform.OS !== 'android') return 0;
 
         setIsScanning(true);
+        let count = 0;
         try {
             const newTransactions = await scanForNewTransactions();
+            count = newTransactions.length;
             if (newTransactions.length > 0) {
-                setDetectedTransactions((prev) => {
-                    // Merge new transactions, avoiding duplicates by ID
-                    const existingIds = new Set(prev.map((t) => t.id));
-                    const unique = newTransactions.filter((t) => !existingIds.has(t.id));
-                    return [...unique, ...prev];
-                });
+                const toAutoConfirm: DetectedTransaction[] = [];
+                const toShowInUI: DetectedTransaction[] = [];
+
+                for (const tx of newTransactions) {
+                    if (tx.isUnknown) {
+                        toShowInUI.push(tx);
+                        // Trigger a "Needs confirmation" notification
+                        triggerExpenseDetected(tx.amount, tx.merchant);
+                    } else {
+                        toAutoConfirm.push(tx);
+                    }
+                }
+
+                // 1. Process Auto-Confirmations
+                for (const tx of toAutoConfirm) {
+                    await addExpense({
+                        amount: tx.amount,
+                        category: tx.category,
+                        note: tx.merchant,
+                        date: tx.date,
+                    });
+                    await confirmDetectedTransaction(tx);
+                    triggerExpenseAutoAdded(tx.amount, tx.merchant);
+                }
+
+                // 2. Add remaining to UI state
+                if (toShowInUI.length > 0) {
+                    setDetectedTransactions((prev) => {
+                        const existingIds = new Set(prev.map((t) => t.id));
+                        const unique = toShowInUI.filter((t) => !existingIds.has(t.id));
+                        return [...unique, ...prev];
+                    });
+                }
             }
         } catch (error) {
             console.warn('[ExpenseDetection] Scan failed:', error);
         } finally {
             setIsScanning(false);
         }
+        return count;
     }, []);
 
     // Start periodic scanning on Android
@@ -246,7 +283,12 @@ export function useExpenseDetection(): UseExpenseDetectionReturn {
     }, []);
 
     const triggerScan = useCallback(async () => {
-        await runScan();
+        return await runScan();
+    }, [runScan]);
+
+    const simulateSms = useCallback(async (body: string, address: string = 'BANK-SMS') => {
+        await simulateIncomingSms(body, address);
+        return await runScan();
     }, [runScan]);
 
     return {
@@ -260,5 +302,6 @@ export function useExpenseDetection(): UseExpenseDetectionReturn {
         updateTransactionField,
         isScanning,
         triggerScan,
+        simulateSms,
     };
 }

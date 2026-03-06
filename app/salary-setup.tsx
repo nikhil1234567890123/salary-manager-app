@@ -1,4 +1,5 @@
 import { View, Text, TextInput, TouchableOpacity, Dimensions, ScrollView, Platform, KeyboardAvoidingView } from "react-native";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -330,6 +331,15 @@ export default function SalarySetupScreen() {
             >
                 {/* Header */}
                 <Animated.View entering={FadeInDown.duration(600)} className="mb-10">
+                    <View className="mb-4">
+                        <View className="w-12 h-12 bg-[#3E3A35] rounded-[16px] items-center justify-center border border-[#D3A77A]/30 overflow-hidden">
+                            <Image
+                                source={require("../assets/images/app_logo_fixed.png")}
+                                style={{ width: "100%", height: "100%" }}
+                                contentFit="cover"
+                            />
+                        </View>
+                    </View>
                     <Text className="text-[#A7A4A0] text-sm uppercase tracking-widest font-bold mb-2">Initialization</Text>
                     <Text className="text-4xl font-black text-[#D3A77A] leading-[44px]">Config{"\n"}Stipend.</Text>
                     <Text className="text-[#A7A4A0] mt-3 leading-relaxed text-[15px]">

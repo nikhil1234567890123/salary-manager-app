@@ -232,7 +232,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             const salaryStr = await AsyncStorage.getItem(STORAGE_KEYS.SALARY);
             const expensesStr = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
 
-            let currentSalary = salary;
+            // Read raw current salary from storage instead of depending on context state
+            let currentSalary: SalaryConfig | null = salaryStr ? JSON.parse(salaryStr) : null;
 
             // If stipend_setup was written more recently (e.g. from salary-setup screen)
             if (stipendStr) {
@@ -252,21 +253,20 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                     setSalary(currentSalary);
                     await AsyncStorage.setItem(STORAGE_KEYS.SALARY, JSON.stringify(currentSalary));
                 }
+            } else if (currentSalary) {
+                setSalary(currentSalary);
             }
 
-            const loadedExpenses: Expense[] = expensesStr ? JSON.parse(expensesStr) : expenses;
+            const loadedExpenses: Expense[] = expensesStr ? JSON.parse(expensesStr) : [];
             setExpenses(loadedExpenses);
 
             if (currentSalary) {
                 setDashboardData(computeDashboard(currentSalary, loadedExpenses));
             }
         } catch (e) {
-            // Fallback: just recompute with current state
-            if (salary) {
-                setDashboardData(computeDashboard(salary, expenses));
-            }
+            console.error('Failed to refresh data', e);
         }
-    }, [salary, expenses]);
+    }, []); // Empty dependencies makes this function stable
 
     const resetMonth = useCallback(async () => {
         setExpenses([]);

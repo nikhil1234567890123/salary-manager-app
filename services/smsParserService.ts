@@ -9,7 +9,7 @@
 
 import { DetectedTransaction, RawSmsMessage } from '@/models/detectedTransaction';
 import { parseTransactionSms } from '@/utils/transactionRegex';
-import { detectCategory, normalizedMerchantName } from '@/utils/merchantCategoryMap';
+import { detectCategory, normalizedMerchantName, scanBodyForMerchant } from '@/utils/merchantCategoryMap';
 import { lookupLearnedMerchant } from '@/services/merchantLearningService';
 
 /** Default merchant name when detection fails */
@@ -42,9 +42,11 @@ function generateTransactionId(
  * Parse a single SMS message into a DetectedTransaction.
  *
  * Resolution order for merchant name:
- *   1. Static merchantCategoryMap (known merchant keywords)
- *   2. Merchant learning system (user-corrected patterns)
- *   3. Fallback → "Unknown Transaction" with isUnknown=true
+ *   1. Regex-extracted merchant → check against known database
+ *   2. Scan FULL SMS body for any known brand name (Netflix, Swiggy, etc.)
+ *   3. Merchant learning system (user-corrected patterns)
+ *   4. Use the raw regex-extracted merchant name as-is (even if not in database)
+ *   5. Fallback → "Unknown Transaction" with isUnknown=true
  *
  * @param sms - Raw SMS message
  * @returns DetectedTransaction if the SMS is a valid bank debit, null otherwise
@@ -59,26 +61,47 @@ export async function parseSingleSms(sms: RawSmsMessage): Promise<DetectedTransa
     let category: string;
     let isUnknown = false;
 
-    // Step 1: Try static merchant map
+    // Step 1: Try regex-extracted merchant → known database
     const normalizedStatic = parsed.merchant
-        ? normalizedMerchantName(parsed.merchant) || parsed.merchant
+        ? normalizedMerchantName(parsed.merchant) || null
         : null;
 
-    if (normalizedStatic && normalizedStatic !== 'Unknown') {
+    if (normalizedStatic) {
+        // Found a known brand from the regex-extracted merchant name
         merchant = normalizedStatic;
         category = detectCategory(merchant);
+        console.log('[SmsParser] Merchant resolved via regex+database:', merchant, '→', category);
     } else {
-        // Step 2: Try merchant learning system (user corrections)
-        const learned = await lookupLearnedMerchant(sms.address, parsed.amount);
+        // Step 2: Scan FULL SMS body for any known brand name
+        // e.g., SMS says "Netflix" somewhere → we pick it up
+        const bodyMatch = scanBodyForMerchant(sms.body);
 
-        if (learned) {
-            merchant = learned.merchant;
-            category = learned.category;
+        if (bodyMatch) {
+            merchant = bodyMatch.merchant;
+            category = bodyMatch.category;
+            console.log('[SmsParser] Merchant found by scanning SMS body:', merchant, '→', category);
         } else {
-            // Step 3: Fallback — unknown transaction
-            merchant = UNKNOWN_MERCHANT;
-            category = UNKNOWN_CATEGORY;
-            isUnknown = true;
+            // Step 3: Try merchant learning system (user corrections)
+            const learned = await lookupLearnedMerchant(sms.address, parsed.amount);
+
+            if (learned) {
+                merchant = learned.merchant;
+                category = learned.category;
+                console.log('[SmsParser] Merchant resolved via learning system:', merchant);
+            } else if (parsed.merchant) {
+                // Step 4: Use the raw regex-extracted merchant name as-is
+                // e.g., "WARDEN BOYS HOST" — not in our database but still a valid name
+                merchant = parsed.merchant;
+                category = detectCategory(merchant); // Try to categorize, defaults to 'Other'
+                isUnknown = false; // We DO have a name, just not in our known list
+                console.log('[SmsParser] Using raw merchant name from SMS:', merchant, '→', category);
+            } else {
+                // Step 5: Fallback — truly unknown transaction
+                merchant = UNKNOWN_MERCHANT;
+                category = UNKNOWN_CATEGORY;
+                isUnknown = true;
+                console.log('[SmsParser] No merchant detected, marking as Unknown.');
+            }
         }
     }
 

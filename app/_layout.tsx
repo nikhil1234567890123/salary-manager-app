@@ -5,16 +5,21 @@ import 'react-native-reanimated';
 import '../global.css';
 
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator, LogBox } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as LocalAuthentication from 'expo-local-authentication';
 
 // Suppress Expo Go push notification warning in SDK 54
-LogBox.ignoreLogs(['expo-notifications: Android Push notifications']);
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications'
+]);
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FinanceProvider } from '@/context/FinanceContext';
 import { SettingsProvider, useSettings } from '@/store/settingsStore';
-import { requestNotificationPermission } from '@/services/notificationService';
+import { PermissionService } from '@/services/permissionService';
+import { useExpenseDetection } from '@/hooks/useExpenseDetection';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -26,8 +31,23 @@ function RootLayoutNav() {
   const [isAuthenticating, setIsAuthenticating] = useState(true);
 
   useEffect(() => {
-    requestNotificationPermission();
+    // Sequential permission request after a small delay 
+    // to ensure screen transition/mount is complete.
+    const setupPermissions = async () => {
+      try {
+        // Slight delay (800ms) prevents Alert/Permission dialog 
+        // from appearing mid-transition, which can lead to UI hangs.
+        await new Promise(resolve => setTimeout(resolve, 800));
+        await PermissionService.requestAllPermissions();
+      } catch (e) {
+        console.warn('[RootLayout] Permission sequence failed:', e);
+      }
+    };
+    setupPermissions();
   }, []);
+
+  // Activate background SMS/Expense detection
+  useExpenseDetection();
 
   useEffect(() => {
     async function authenticate() {
@@ -75,18 +95,27 @@ function RootLayoutNav() {
   }
 
   return (
-    <ThemeProvider value={settings.isDarkMode ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="salary-setup" options={{ headerShown: false }} />
-        <Stack.Screen name="(guest)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="add-expense" options={{ presentation: 'modal', headerShown: false }} />
-      </Stack>
-      <StatusBar style={settings.isDarkMode ? "light" : "dark"} />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={settings.isDarkMode ? {
+        ...DarkTheme,
+        colors: {
+          ...DarkTheme.colors,
+          background: '#2C2B29',
+          card: '#2C2B29',
+        }
+      } : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="salary-setup" options={{ headerShown: false }} />
+          <Stack.Screen name="(guest)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="add-expense" options={{ presentation: 'modal', headerShown: false }} />
+        </Stack>
+        <StatusBar style={settings.isDarkMode ? "light" : "dark"} />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

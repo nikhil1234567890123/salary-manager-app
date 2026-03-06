@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from "expo-status-bar";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useFinance } from '@/context/FinanceContext';
+import { useImpact } from '@/hooks/useImpact';
 import { AlertDialog } from '@/components/ConfirmDialog';
 
 const CATEGORIES = [
@@ -19,6 +20,7 @@ const CATEGORIES = [
 
 export default function AddExpenseScreen() {
     const { addExpense, salary } = useFinance();
+    const impact = useImpact();
     const [amount, setAmount] = useState('');
     const [note, setNote] = useState('');
     const [selected, setSelected] = useState('Food');
@@ -41,13 +43,17 @@ export default function AddExpenseScreen() {
     const handleSubmit = async () => {
         const parsedAmount = parseFloat(amount);
         if (!parsedAmount || parsedAmount <= 0) {
+            impact.error();
             showAlert('Invalid Amount', 'Please enter a valid expense amount.', 'danger');
             return;
         }
         if (!salary) {
+            impact.error();
             showAlert('Setup Required', 'Please set your salary on the Home tab first.', 'default');
             return;
         }
+
+        impact.medium();
 
         await addExpense({
             amount: parsedAmount,
@@ -56,6 +62,7 @@ export default function AddExpenseScreen() {
             date: new Date().toISOString().split('T')[0],
         });
 
+        impact.success();
         showAlert('Saved! ✅', `₹${parsedAmount} for ${selected} recorded.`, 'success', true);
     };
 
@@ -102,7 +109,10 @@ export default function AddExpenseScreen() {
                         {CATEGORIES.map((cat) => (
                             <TouchableOpacity
                                 key={cat.name}
-                                onPress={() => setSelected(cat.name)}
+                                onPress={() => {
+                                    impact.light();
+                                    setSelected(cat.name);
+                                }}
                                 activeOpacity={0.7}
                                 className={`flex-row items-center px-4 py-3 rounded-2xl border ${selected === cat.name
                                     ? 'bg-[#D3A77A]/15 border-[#D3A77A]'

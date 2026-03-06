@@ -3,14 +3,23 @@ import { View, Text, ScrollView, Dimensions, TouchableOpacity } from 'react-nati
 import { useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, {
+    FadeInDown,
+    useSharedValue,
+    useAnimatedStyle,
+    withTiming,
+    withDelay,
+    Easing
+} from 'react-native-reanimated';
 import { useFinance } from '@/context/FinanceContext';
 import {
     calculateBurnRate,
     predictEndOfMonth,
     getCategoryBreakdown,
+    CATEGORY_COLORS, // Moved CATEGORY_COLORS here
 } from '@/utils/analyticsEngine';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useImpact } from '@/hooks/useImpact';
 import { formatCurrency } from '@/utils/formatters';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -28,20 +37,51 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
     General: 'wallet-outline',
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-    Food: '#EF6C6C',
-    Transport: '#4FC1E8',
-    Shopping: '#D3A77A',
-    Bills: '#EACFA7',
-    Health: '#6BCB77',
-    Entertainment: '#C47AE8',
-    Education: '#6CB4EF',
-    Other: '#A7A4A0',
-    General: '#65625E',
+// Sub-components to follow Rules of Hooks
+const ChartBar = ({ bar, barHeight, chartAnim }: { bar: any; barHeight: number; chartAnim: any }) => {
+    const animatedStyle = useAnimatedStyle(() => ({
+        height: `${barHeight * chartAnim.value}%`,
+    }));
+    return (
+        <View className="flex-1 items-center justify-end h-full">
+            <Text className="text-[#A7A4A0] text-[9px] font-bold mb-1">
+                ₹{bar.value >= 1000 ? `${(bar.value / 1000).toFixed(1)}k` : bar.value}
+            </Text>
+            <Animated.View
+                className="w-full rounded-xl"
+                style={[
+                    {
+                        backgroundColor: bar.color,
+                        minHeight: 6,
+                    },
+                    animatedStyle
+                ]}
+            />
+            <Text className={`text-[#65625E] text-[9px] font-bold mt-2 uppercase`}>{bar.label}</Text>
+        </View>
+    );
+};
+
+const CategorySegment = ({ cat, chartAnim }: { cat: any; chartAnim: any }) => {
+    const animatedStyle = useAnimatedStyle(() => ({
+        width: `${cat.percentage * chartAnim.value}%`,
+    }));
+    return (
+        <Animated.View
+            style={[
+                { backgroundColor: CATEGORY_COLORS[cat.category] || '#65625E' },
+                animatedStyle
+            ]}
+        />
+    );
 };
 
 export default function DashboardScreen() {
     const { dashboardData, expenses, refreshData, isLoading, deleteExpense } = useFinance();
+    const impact = useImpact();
+
+    // Chart animations
+    const chartAnim = useSharedValue(0);
 
     // Deletion state
     const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
@@ -50,6 +90,17 @@ export default function DashboardScreen() {
     useFocusEffect(
         useCallback(() => {
             refreshData();
+
+            // Animate charts on focus (only if they are at 0)
+            chartAnim.value = withDelay(300, withTiming(1, {
+                duration: 1000,
+                easing: Easing.bezier(0.25, 0.1, 0.25, 1)
+            }));
+
+            return () => {
+                // Reset when leaving so it re-animates on return
+                chartAnim.value = 0;
+            };
         }, [refreshData])
     );
 
@@ -119,7 +170,9 @@ export default function DashboardScreen() {
                 {/* Stats Grid */}
                 <Animated.View entering={FadeInDown.duration(600).delay(100)} className="flex-row flex-wrap mb-6" style={{ gap: 12 }}>
                     {statCards.map((card, index) => (
-                        <View
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => impact.light()}
                             key={card.label}
                             className="bg-[#383633] rounded-[24px] p-5 border border-[#4E4B47]"
                             style={{
@@ -137,7 +190,7 @@ export default function DashboardScreen() {
                                 </Text>
                                 <Text className={`text-[#F2EFEB] font-extrabold ${index === 4 ? 'text-2xl' : 'text-lg'}`}>{card.value}</Text>
                             </View>
-                        </View>
+                        </TouchableOpacity>
                     ))}
                 </Animated.View>
 
@@ -163,25 +216,14 @@ export default function DashboardScreen() {
                 <Animated.View entering={FadeInDown.duration(600).delay(200)} className="bg-[#383633] rounded-[24px] p-6 border border-[#4E4B47] mb-6">
                     <Text className="text-[#A7A4A0] text-xs font-bold uppercase tracking-widest mb-5">Spending Breakdown</Text>
                     <View className="flex-row items-end justify-between" style={{ height: 120, gap: 12 }}>
-                        {bars.map((bar) => {
-                            const barHeight = total > 0 ? Math.max((bar.value / total) * 100, 4) : 4;
-                            return (
-                                <View key={bar.label} className="flex-1 items-center">
-                                    <Text className="text-[#A7A4A0] text-[9px] font-bold mb-1">
-                                        ₹{bar.value >= 1000 ? `${(bar.value / 1000).toFixed(1)}k` : bar.value}
-                                    </Text>
-                                    <View
-                                        className="w-full rounded-xl"
-                                        style={{
-                                            height: `${barHeight}%`,
-                                            backgroundColor: bar.color,
-                                            minHeight: 6,
-                                        }}
-                                    />
-                                    <Text className="text-[#65625E] text-[9px] font-bold mt-2 uppercase">{bar.label}</Text>
-                                </View>
-                            );
-                        })}
+                        {bars.map((bar, i) => (
+                            <ChartBar
+                                key={i}
+                                bar={bar}
+                                barHeight={total > 0 ? Math.max((bar.value / total) * 100, 4) : 4}
+                                chartAnim={chartAnim}
+                            />
+                        ))}
                     </View>
                 </Animated.View>
 
@@ -190,10 +232,11 @@ export default function DashboardScreen() {
                     <Animated.View entering={FadeInDown.duration(600).delay(250)} className="bg-[#383633] rounded-[24px] p-5 border border-[#4E4B47] mb-6">
                         <Text className="text-[#A7A4A0] text-xs font-bold uppercase tracking-widest mb-4">Category Split</Text>
                         <View className="flex-row h-3 rounded-full overflow-hidden mb-4">
-                            {categories.map((cat) => (
-                                <View
+                            {categories.map((cat, i) => (
+                                <CategorySegment
                                     key={cat.category}
-                                    style={{ width: `${cat.percentage}%`, backgroundColor: CATEGORY_COLORS[cat.category] || '#65625E' }}
+                                    cat={cat}
+                                    chartAnim={chartAnim}
                                 />
                             ))}
                         </View>
@@ -254,7 +297,10 @@ export default function DashboardScreen() {
                                     <View className="flex-row items-center">
                                         <Text className="text-[#EF6C6C] font-extrabold mr-3">-₹{formatCurrency(exp.amount)}</Text>
                                         <TouchableOpacity
-                                            onPress={() => setExpenseToDelete(exp.id)}
+                                            onPress={() => {
+                                                impact.medium();
+                                                setExpenseToDelete(exp.id);
+                                            }}
                                             className="w-8 h-8 items-center justify-center bg-[#4A2F2F]/20 rounded-full"
                                         >
                                             <Ionicons name="trash-outline" size={16} color="#EF6C6C" />
@@ -279,13 +325,17 @@ export default function DashboardScreen() {
                 icon="trash"
                 onConfirm={async () => {
                     if (expenseToDelete) {
+                        impact.success();
                         setIsDeleting(true);
                         await deleteExpense(expenseToDelete);
                         setExpenseToDelete(null);
                         setIsDeleting(false);
                     }
                 }}
-                onCancel={() => setExpenseToDelete(null)}
+                onCancel={() => {
+                    impact.light();
+                    setExpenseToDelete(null);
+                }}
             />
         </View>
     );

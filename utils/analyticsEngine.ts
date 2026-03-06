@@ -60,6 +60,18 @@ export interface SmartInsight {
     icon: string;  // Ionicons name
 }
 
+export const CATEGORY_COLORS: Record<string, string> = {
+    Food: '#EF6C6C',
+    Transport: '#4FC1E8',
+    Shopping: '#D3A77A',
+    Bills: '#EACFA7',
+    Health: '#6BCB77',
+    Entertainment: '#C47AE8',
+    Education: '#6CB4EF',
+    Other: '#A7A4A0',
+    General: '#65625E',
+};
+
 // ─── Helpers ──────────────────────────────────────────────────
 function getDaysInMonth(date = new Date()): number {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -411,8 +423,29 @@ export function getHomeInsight(expenses: Expense[], dailyLimit: number): string 
 }
 
 // ─── 10. Monthly Usage Color ─────────────────────────────────
+// ─── 10. Monthly Usage Color ─────────────────────────────────
 export function getUsageColor(percentage: number): string {
     if (percentage <= 60) return '#6CEF8A';  // green
     if (percentage <= 85) return '#EACFA7';  // yellow/gold
     return '#EF6C6C';                        // red
+}
+
+// ─── 11. Financial Health Score ──────────────────────────────
+export function getFinancialHealth(spent: number, budget: number): { score: number; status: string; color: string } {
+    if (budget <= 0) return { score: 0, status: 'No Budget', color: '#A7A4A0' };
+    const ratio = spent / budget;
+    const score = Math.max(0, Math.min(100, Math.round((1 - ratio) * 100)));
+
+    if (score >= 80) return { score, status: 'Excellent', color: '#6CEF8A' };
+    if (score >= 60) return { score, status: 'Good', color: '#EACFA7' };
+    if (score >= 40) return { score, status: 'Fair', color: '#D3A77A' };
+    return { score, status: 'Critical', color: '#EF6C6C' };
+}
+
+// ─── 12. Spending Performance by Category ─────────────────────
+export function getSpendingPerformance(categories: CategoryBreakdown[]): { category: string; efficiency: number }[] {
+    return categories.map(cat => ({
+        category: cat.category,
+        efficiency: Math.max(10, Math.min(100, 100 - cat.percentage)) // Simple heuristic
+    }));
 }

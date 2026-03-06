@@ -1,4 +1,5 @@
 import { View, Text, TextInput, TouchableOpacity, Dimensions, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -269,6 +270,15 @@ export default function LoginScreen() {
 
                 {/* Elegant Typography Header */}
                 <Animated.View style={[{ opacity: entranceOpacity.value, transform: [{ translateY: stagger1.value }] }]} className="mb-10 mt-4">
+                    <View className="mb-6">
+                        <View className="w-16 h-16 bg-[#3E3A35] rounded-[20px] items-center justify-center shadow-lg border border-[#D3A77A]/30 overflow-hidden">
+                            <Image
+                                source={require("../assets/images/app_logo_fixed.png")}
+                                style={{ width: "100%", height: "100%" }}
+                                contentFit="cover"
+                            />
+                        </View>
+                    </View>
                     <Animated.Text style={[titleTranslateStyle]} className="text-[48px] font-bold text-[#D3A77A] leading-[52px] mb-4">
                         {isLogin ? 'Track.\nMaster.' : 'Begin.\nJourney.'}
                     </Animated.Text>

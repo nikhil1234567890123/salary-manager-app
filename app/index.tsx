@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, Dimensions } from "react-native";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import Animated, {
     useSharedValue,
@@ -166,12 +167,11 @@ export default function SplashScreen() {
             </View>
 
 
-            {/* Logo initially dead center absolutely until it moves up */}
             <Animated.View
                 style={[logoStyle, { position: 'absolute' }]}
-                className="w-28 h-28 bg-[#3E3A35] rounded-[36px] items-center justify-center shadow-2xl shadow-[#D3A77A]/20 border border-[#D3A77A] z-20"
+                className="w-28 h-28 bg-[#3E3A35] rounded-[36px] items-center justify-center shadow-2xl shadow-[#D3A77A]/20 border border-[#D3A77A] z-20 overflow-hidden"
             >
-                <Ionicons name="wallet" size={54} color="#D3A77A" />
+                <Ionicons name="wallet" size={48} color="#D3A77A" />
             </Animated.View>
 
             {/* Content Container (Fades in below the logo's new moved position) */}

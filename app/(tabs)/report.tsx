@@ -1,10 +1,18 @@
-import { View, Text, ScrollView, Dimensions } from "react-native";
+import { View, Text, ScrollView, Dimensions, TouchableOpacity } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { useFinance } from '@/context/FinanceContext';
+import { useImpact } from '@/hooks/useImpact';
 import { useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { StatusBar } from "expo-status-bar";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, {
+    FadeInDown,
+    useSharedValue,
+    useAnimatedStyle,
+    withTiming,
+    withDelay,
+    Easing
+} from "react-native-reanimated";
 import { LineChart } from "react-native-chart-kit";
 import { calculateOverspendDays } from "@/utils/financeCalculations";
 import {
@@ -14,29 +22,50 @@ import {
     analyzeSpendingBehavior,
     getCategoryBreakdown,
     generateAdvancedInsights,
+    getFinancialHealth,
+    getSpendingPerformance,
+    CATEGORY_COLORS,
 } from "@/utils/analyticsEngine";
 import { formatCurrency } from "@/utils/formatters";
 
 const { width } = Dimensions.get("window");
 
-const CATEGORY_COLORS: Record<string, string> = {
-    Food: '#EF6C6C',
-    Transport: '#4FC1E8',
-    Shopping: '#D3A77A',
-    Bills: '#EACFA7',
-    Health: '#6BCB77',
-    Entertainment: '#C47AE8',
-    Education: '#6CB4EF',
-    Other: '#A7A4A0',
-    General: '#65625E',
+
+// Sub-component to follow Rules of Hooks
+const CategorySegment = ({ cat, reportAnim }: { cat: any; reportAnim: any }) => {
+    const animatedStyle = useAnimatedStyle(() => ({
+        width: `${cat.percentage * reportAnim.value}%`,
+    }));
+    return (
+        <Animated.View
+            style={[
+                { backgroundColor: CATEGORY_COLORS[cat.category] || '#65625E' },
+                animatedStyle
+            ]}
+        />
+    );
 };
 
 export default function ReportScreen() {
     const { dashboardData, expenses, refreshData } = useFinance();
+    const impact = useImpact();
+
+    const reportAnim = useSharedValue(0);
 
     useFocusEffect(
         useCallback(() => {
             refreshData();
+
+            // Animate on focus (only if at 0)
+            reportAnim.value = withDelay(300, withTiming(1, {
+                duration: 1000,
+                easing: Easing.bezier(0.25, 0.1, 0.25, 1)
+            }));
+
+            return () => {
+                // Reset when leaving so it re-animates on return
+                reportAnim.value = 0;
+            };
         }, [refreshData])
     );
 
@@ -111,7 +140,11 @@ export default function ReportScreen() {
                 <Animated.View entering={FadeInDown.duration(600).delay(200)}>
                     <Text className="text-[#A7A4A0] font-bold text-xs uppercase tracking-widest mb-4 ml-1">Summary</Text>
                     <View className="space-y-3 mb-8">
-                        <View className="bg-[#3E3A35] rounded-2xl p-4 border border-[#4E4B47] flex-row justify-between items-center mb-3">
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => impact.light()}
+                            className="bg-[#3E3A35] rounded-2xl p-4 border border-[#4E4B47] flex-row justify-between items-center mb-3"
+                        >
                             <View className="flex-row items-center">
                                 <View className="w-10 h-10 bg-[#2C2B29] border border-[#5D5A54] rounded-full items-center justify-center mr-3">
                                     <Ionicons name="briefcase" size={18} color="#D3A77A" />
@@ -122,9 +155,13 @@ export default function ReportScreen() {
                                 </View>
                             </View>
                             <Text className="text-[#D3A77A] font-bold text-lg">₹ {formatCurrency(salary)}</Text>
-                        </View>
+                        </TouchableOpacity>
 
-                        <View className="bg-[#3E3A35] rounded-2xl p-4 border border-[#4E4B47] flex-row justify-between items-center mb-3">
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => impact.light()}
+                            className="bg-[#3E3A35] rounded-2xl p-4 border border-[#4E4B47] flex-row justify-between items-center mb-3"
+                        >
                             <View className="flex-row items-center">
                                 <View className="w-10 h-10 bg-[#3E3A35] border border-[#5D5A54] rounded-full items-center justify-center mr-3">
                                     <Ionicons name="home" size={18} color="#EACFA7" />
@@ -135,9 +172,13 @@ export default function ReportScreen() {
                                 </View>
                             </View>
                             <Text className="text-[#EACFA7] font-bold text-lg">₹ {formatCurrency(dashboardData?.fixedExpenses ?? 0)}</Text>
-                        </View>
+                        </TouchableOpacity>
 
-                        <View className="bg-[#3E3A35] rounded-2xl p-4 border border-[#4E4B47] flex-row justify-between items-center mb-3">
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => impact.light()}
+                            className="bg-[#3E3A35] rounded-2xl p-4 border border-[#4E4B47] flex-row justify-between items-center mb-3"
+                        >
                             <View className="flex-row items-center">
                                 <View className="w-10 h-10 bg-[#4A2F2F] border border-[#663A3A] rounded-full items-center justify-center mr-3">
                                     <Ionicons name="trending-down" size={18} color="#EF6C6C" />
@@ -148,9 +189,13 @@ export default function ReportScreen() {
                                 </View>
                             </View>
                             <Text className="text-[#EF6C6C] font-bold text-lg">₹ {formatCurrency(spent)}</Text>
-                        </View>
+                        </TouchableOpacity>
 
-                        <View className="bg-[#3E3A35] rounded-2xl p-4 border border-[#4E4B47] flex-row justify-between items-center mb-3">
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => impact.light()}
+                            className="bg-[#3E3A35] rounded-2xl p-4 border border-[#4E4B47] flex-row justify-between items-center mb-3"
+                        >
                             <View className="flex-row items-center">
                                 <View className="w-10 h-10 bg-[#2C3B29] border border-[#3A6648] rounded-full items-center justify-center mr-3">
                                     <Ionicons name="trending-up" size={18} color="#6CEF8A" />
@@ -161,9 +206,13 @@ export default function ReportScreen() {
                                 </View>
                             </View>
                             <Text className="text-[#6CEF8A] font-bold text-lg">₹ {formatCurrency(saved)}</Text>
-                        </View>
+                        </TouchableOpacity>
 
-                        <View className="bg-[#3E3A35] rounded-2xl p-4 border border-[#4E4B47] flex-row justify-between items-center mb-3">
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => impact.light()}
+                            className="bg-[#3E3A35] rounded-2xl p-4 border border-[#4E4B47] flex-row justify-between items-center mb-3"
+                        >
                             <View className="flex-row items-center">
                                 <View className="w-10 h-10 bg-[#2C2B29] border border-[#5D5A54] rounded-full items-center justify-center mr-3">
                                     <Ionicons name="wallet" size={18} color="#EACFA7" />
@@ -174,7 +223,7 @@ export default function ReportScreen() {
                                 </View>
                             </View>
                             <Text className="text-[#EACFA7] font-bold text-lg">₹ {formatCurrency(remainingBalance)}</Text>
-                        </View>
+                        </TouchableOpacity>
                     </View>
                 </Animated.View>
 
@@ -202,20 +251,26 @@ export default function ReportScreen() {
                         <Text className="text-[#A7A4A0] text-xs font-bold uppercase tracking-widest mb-4">Category Breakdown</Text>
                         <View className="flex-row h-3 rounded-full overflow-hidden mb-4">
                             {categories.map((cat) => (
-                                <View
+                                <CategorySegment
                                     key={cat.category}
-                                    style={{ width: `${cat.percentage}%`, backgroundColor: CATEGORY_COLORS[cat.category] || '#65625E' }}
+                                    cat={cat}
+                                    reportAnim={reportAnim}
                                 />
                             ))}
                         </View>
                         {categories.map((cat) => (
-                            <View key={cat.category} className="flex-row justify-between items-center mb-2">
+                            <TouchableOpacity
+                                key={cat.category}
+                                activeOpacity={0.7}
+                                onPress={() => impact.light()}
+                                className="flex-row justify-between items-center mb-2"
+                            >
                                 <View className="flex-row items-center">
                                     <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: CATEGORY_COLORS[cat.category] || '#65625E' }} />
                                     <Text className="text-[#F2EFEB] text-sm">{cat.category}</Text>
                                 </View>
                                 <Text className="text-[#A7A4A0] text-sm font-bold">{cat.percentage}%  ₹{formatCurrency(cat.amount)}</Text>
-                            </View>
+                            </TouchableOpacity>
                         ))}
                     </Animated.View>
                 )}
@@ -292,7 +347,12 @@ export default function ReportScreen() {
                         const bgColor = insight.type === 'danger' ? 'bg-[#4A2F2F]' : insight.type === 'warning' ? 'bg-[#4A3F2F]' : insight.type === 'info' ? 'bg-[#2F3A4A]' : 'bg-[#2C3B29]';
                         const borderColor = insight.type === 'danger' ? 'border-[#663A3A]' : insight.type === 'warning' ? 'border-[#665A3A]' : insight.type === 'info' ? 'border-[#3A5266]' : 'border-[#3A6648]';
                         return (
-                            <View key={index} className="bg-[#3E3A35] rounded-2xl p-5 border border-[#4E4B47] flex-row items-start mb-3">
+                            <TouchableOpacity
+                                key={index}
+                                activeOpacity={0.8}
+                                onPress={() => impact.light()}
+                                className="bg-[#3E3A35] rounded-2xl p-5 border border-[#4E4B47] flex-row items-start mb-3"
+                            >
                                 <View className={`w-10 h-10 ${bgColor} border ${borderColor} rounded-full items-center justify-center mr-4 mt-1`}>
                                     <Ionicons name={insight.icon as any} size={18} color={iconColor} />
                                 </View>
@@ -300,7 +360,7 @@ export default function ReportScreen() {
                                     <Text className="text-[#F2EFEB] font-bold mb-1">{insight.title}</Text>
                                     <Text className="text-[#A7A4A0] text-sm leading-5">{insight.text}</Text>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                         );
                     })}
                     {insights.length === 0 && (

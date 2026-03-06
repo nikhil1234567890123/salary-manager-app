@@ -4,7 +4,7 @@
     "slug": "salary-manager",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app_logo.png",
     "scheme": "salarymanager",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -40,12 +40,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/app_logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#2C2B29",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#2C2B29"
           }
         }
       ]

@@ -118,6 +118,26 @@ export default function SettingsScreen() {
                             />
                         </View>
 
+                        <View className="flex-row items-center justify-between p-5 border-b border-[#4E4B47]">
+                            <View className="flex-row items-center flex-1 mr-3">
+                                <View className="w-10 h-10 bg-[#3E3A35] rounded-full items-center justify-center mr-4 border border-[#5D5A54]">
+                                    <Ionicons name="shield-checkmark" size={18} color="#6BCB77" />
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="text-[#F2EFEB] font-semibold text-base">Offline Privacy</Text>
+                                    {settings.offlinePrivacyMode && (
+                                        <Text className="text-[#6BCB77] text-[10px] font-bold uppercase tracking-wider mt-0.5">Local Data Only</Text>
+                                    )}
+                                </View>
+                            </View>
+                            <Switch
+                                value={settings.offlinePrivacyMode}
+                                onValueChange={(val) => updateSetting('offlinePrivacyMode', val)}
+                                trackColor={{ false: '#4E4B47', true: '#6BCB77' }}
+                                thumbColor={settings.offlinePrivacyMode ? '#F2EFEB' : '#A7A4A0'}
+                            />
+                        </View>
+
                         <TouchableOpacity
                             onPress={handleExport}
                             className="flex-row items-center justify-between p-5 border-b border-[#4E4B47]"

@@ -48,6 +48,22 @@ export async function hasSmsPermission(): Promise<boolean> {
 export async function requestSmsPermission(): Promise<boolean> {
     if (Platform.OS !== 'android') return false;
 
+    // 1. Check if OS permission is already actually granted
+    const osGranted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_SMS);
+    if (osGranted) {
+        await AsyncStorage.setItem(STORAGE_KEYS.SMS_PERMISSION_GRANTED, 'true');
+        return true;
+    }
+
+    // 2. Check if we've already shown our custom prompt before
+    const savedStatus = await AsyncStorage.getItem(STORAGE_KEYS.SMS_PERMISSION_GRANTED);
+
+    // If we have asked before, we shouldn't keep showing the manual alert on every launch.
+    // The user can still grant permissions manually via OS settings, which would be caught by osGranted above.
+    if (savedStatus !== null) {
+        return false;
+    }
+
     return new Promise<boolean>((resolve) => {
         Alert.alert(
             'SMS Access Required',

@@ -23,7 +23,7 @@ export interface ParsedAmount {
 export interface ParsedTransaction {
     amount: number;
     merchant: string | null;
-    type: 'debit';
+    type: 'debit' | 'credit';
     date: string;
 }
 
@@ -155,11 +155,10 @@ export function extractMerchant(text: string): string | null {
 
 /**
  * Full parse: extract amount, merchant, type from an SMS body.
- * Returns null if the SMS is not a recognizable debit transaction.
+ * Returns null if the SMS is not a recognizable transaction.
  *
  * Strategy: Try amount extraction first. If we find an amount,
- * then check if it's clearly a credit (refund/cashback). If not,
- * treat any bank-like SMS with an amount as a potential debit.
+ * then check if it's a credit or debit.
  *
  * @param body     - SMS text
  * @param timestamp - SMS timestamp in ms (used to derive the date)
@@ -170,31 +169,34 @@ export function parseTransactionSms(
 ): ParsedTransaction | null {
     console.log('[SmsParser] Analyzing body:', body.substring(0, 50) + '...');
 
-    // Step 1: Check if it's explicitly a credit/refund — skip those
-    const hasCreditKw = CREDIT_KEYWORDS.test(body);
-    const hasDebitKw = DEBIT_KEYWORDS.test(body);
-
-    if (hasCreditKw && !hasDebitKw) {
-        console.log('[SmsParser] SKIPPED: This is a credit/refund SMS.');
-        return null;
-    }
-
-    // Step 2: Try to extract an amount
+    // Step 1: Try to extract an amount
     const amountResult = extractAmount(body);
     if (!amountResult) {
         console.log('[SmsParser] FAILED: No valid amount found.');
         return null;
     }
 
-    // Step 3: Verify it looks financial (has debit keyword OR account reference)
-    if (!isDebitTransaction(body)) {
-        console.log('[SmsParser] FAILED: Does not look like a debit transaction.');
+    // Step 2: Determine transaction type
+    const hasCreditKw = CREDIT_KEYWORDS.test(body);
+    const hasDebitKw = DEBIT_KEYWORDS.test(body);
+
+    let type: 'debit' | 'credit';
+
+    if (hasCreditKw && !hasDebitKw) {
+        type = 'credit';
+    } else if (hasDebitKw) {
+        type = 'debit';
+    } else if (isDebitTransaction(body)) {
+        // Fallback for ambiguous bank messages
+        type = 'debit';
+    } else {
+        console.log('[SmsParser] FAILED: Could not determine transaction type.');
         return null;
     }
 
-    console.log('[SmsParser] SUCCESS: Amount extracted:', amountResult.amount);
+    console.log(`[SmsParser] SUCCESS: ${type} amount extracted:`, amountResult.amount);
 
-    // Step 4: Try to extract merchant (optional – will fall back to "Unknown")
+    // Step 3: Try to extract merchant (optional – will fall back to "Unknown")
     const merchant = extractMerchant(body);
     if (merchant) {
         console.log('[SmsParser] Merchant detected:', merchant);
@@ -209,7 +211,7 @@ export function parseTransactionSms(
     return {
         amount: amountResult.amount,
         merchant,
-        type: 'debit',
+        type,
         date,
     };
 }

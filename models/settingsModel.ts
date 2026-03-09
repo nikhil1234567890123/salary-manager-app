@@ -5,6 +5,7 @@ export interface AppSettings {
     autoExpenseDetection: boolean;
     spendingAlerts: boolean;
     appLockEnabled: boolean;
+    offlinePrivacyMode: boolean;
     theme: ThemeType;
 }
 
@@ -13,5 +14,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     autoExpenseDetection: true,
     spendingAlerts: true,
     appLockEnabled: false,
+    offlinePrivacyMode: false,
     theme: 'dark',
 };

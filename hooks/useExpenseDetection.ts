@@ -82,7 +82,7 @@ export interface UseExpenseDetectionReturn {
 }
 
 export function useExpenseDetection(): UseExpenseDetectionReturn {
-    const { addExpense, expenses } = useFinance();
+    const { addTransaction, expenses } = useFinance();
 
     const [detectedTransactions, setDetectedTransactions] = useState<DetectedTransaction[]>([]);
     const [suggestions, setSuggestions] = useState<SmartSuggestion[]>([]);
@@ -115,14 +115,18 @@ export function useExpenseDetection(): UseExpenseDetectionReturn {
 
                 // 1. Process Auto-Confirmations
                 for (const tx of toAutoConfirm) {
-                    await addExpense({
+                    await addTransaction({
+                        type: tx.type === 'credit' ? 'income' : 'expense',
                         amount: tx.amount,
                         category: tx.category,
                         note: tx.merchant,
-                        date: tx.date,
+                        source: 'sms',
+                        date: tx.timestamp,
                     });
                     await confirmDetectedTransaction(tx);
-                    triggerExpenseAutoAdded(tx.amount, tx.merchant);
+                    if (tx.type === 'debit') {
+                        triggerExpenseAutoAdded(tx.amount, tx.merchant);
+                    }
                 }
 
                 // 2. Add remaining to UI state
@@ -204,12 +208,14 @@ export function useExpenseDetection(): UseExpenseDetectionReturn {
 
     const confirmTransaction = useCallback(
         async (tx: DetectedTransaction) => {
-            // Add as expense via FinanceContext
-            await addExpense({
+            // Add via FinanceContext
+            await addTransaction({
+                type: tx.type === 'credit' ? 'income' : 'expense',
                 amount: tx.amount,
                 category: tx.category,
                 note: tx.merchant,
-                date: tx.date,
+                source: 'sms',
+                date: tx.timestamp,
             });
 
             // Mark as processed
@@ -218,7 +224,7 @@ export function useExpenseDetection(): UseExpenseDetectionReturn {
             // Remove from pending list
             setDetectedTransactions((prev) => prev.filter((t) => t.id !== tx.id));
         },
-        [addExpense]
+        [addTransaction]
     );
 
     const editAndConfirmTransaction = useCallback(
@@ -237,12 +243,14 @@ export function useExpenseDetection(): UseExpenseDetectionReturn {
                 );
             }
 
-            // Add as expense with the user-corrected values
-            await addExpense({
+            // Add with the user-corrected values
+            await addTransaction({
+                type: tx.type === 'credit' ? 'income' : 'expense',
                 amount: tx.amount,
                 category: editedCategory,
                 note: editedMerchant,
-                date: tx.date,
+                source: 'sms',
+                date: tx.timestamp,
             });
 
             // Mark as processed
@@ -251,7 +259,7 @@ export function useExpenseDetection(): UseExpenseDetectionReturn {
             // Remove from pending list
             setDetectedTransactions((prev) => prev.filter((t) => t.id !== tx.id));
         },
-        [addExpense]
+        [addTransaction]
     );
 
     const dismissTransaction = useCallback(async (tx: DetectedTransaction) => {
@@ -264,18 +272,20 @@ export function useExpenseDetection(): UseExpenseDetectionReturn {
 
     const acceptSuggestion = useCallback(
         async (suggestion: SmartSuggestion) => {
-            // Add as expense via FinanceContext
-            await addExpense({
+            // Add via FinanceContext
+            await addTransaction({
+                type: 'expense', // Suggestions are always expenses for now
                 amount: suggestion.amount,
                 category: suggestion.category,
                 note: suggestion.merchant,
-                date: suggestion.date,
+                source: 'manual', // Suggestions are manual-ish
+                date: new Date().getTime(),
             });
 
             // Remove from suggestions list
             setSuggestions((prev) => prev.filter((s) => s.id !== suggestion.id));
         },
-        [addExpense]
+        [addTransaction]
     );
 
     const dismissSuggestion = useCallback((suggestionId: string) => {

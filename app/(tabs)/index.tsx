@@ -30,6 +30,8 @@ import {
 } from '@/utils/analyticsEngine';
 import { formatCurrency } from '@/utils/formatters';
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSettings } from '@/store/settingsStore';
+import PaydayCelebrationModal, { createPaydayEvent } from '@/components/PaydayCelebrationModal';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -62,6 +64,7 @@ const WeeklyBar = ({ barH, weeklyAnim, isToday, label }: { barH: number; weeklyA
 
 export default function HomeScreen() {
   const { salary, dashboardData, expenses, setSalaryConfig, refreshData } = useFinance();
+  const { settings } = useSettings();
 
   const {
     detectedTransactions,
@@ -82,6 +85,10 @@ export default function HomeScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pasteModalVisible, setPasteModalVisible] = useState(false);
   const [pastedSms, setPastedSms] = useState('');
+
+  // Payday celebration state
+  const [showPayday, setShowPayday] = useState(false);
+  const [paydayEvent, setPaydayEvent] = useState<ReturnType<typeof createPaydayEvent> | null>(null);
 
   const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
@@ -268,6 +275,17 @@ export default function HomeScreen() {
               <Ionicons name="clipboard-outline" size={18} color="#D3A77A" />
               <Text className="text-[#D3A77A] font-bold text-sm ml-2">PASTE BANK SMS</Text>
             </TouchableOpacity>
+          </Animated.View>
+        )}
+
+        {/* Offline Privacy Badge */}
+        {settings.offlinePrivacyMode && (
+          <Animated.View
+            entering={FadeInDown.duration(400)}
+            className="flex-row items-center bg-[#1A3320] border border-[#2D5C3D] rounded-full px-4 py-2 mt-4 mb-2 self-start"
+          >
+            <Ionicons name="shield-checkmark" size={14} color="#6BCB77" />
+            <Text className="text-[#6BCB77] text-[10px] font-bold uppercase tracking-widest ml-2">Local Data Only</Text>
           </Animated.View>
         )}
 
@@ -512,6 +530,18 @@ export default function HomeScreen() {
 
         <View className="h-24" />
       </ScrollView>
+
+      {/* Payday Celebration Modal */}
+      <PaydayCelebrationModal
+        visible={showPayday}
+        event={paydayEvent}
+        onDismiss={() => setShowPayday(false)}
+        onAction={(actionId) => {
+          impact.medium();
+          setShowPayday(false);
+          // Actions can be extended: navigate to savings, rent, or budget screens
+        }}
+      />
 
       {/* Manual SMS Paste Modal */}
       <Modal

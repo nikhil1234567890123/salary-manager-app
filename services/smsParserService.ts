@@ -118,8 +118,8 @@ export async function parseSingleSms(sms: RawSmsMessage): Promise<DetectedTransa
         id,
         amount: parsed.amount,
         merchant,
-        category,
-        type: 'debit',
+        category: parsed.type === 'credit' ? 'Salary' : category, // Default category for credit
+        type: parsed.type,
         date: parsed.date,
         timestamp: sms.timestamp,
         source: 'sms',

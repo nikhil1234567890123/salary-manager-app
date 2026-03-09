@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Transaction } from '@/types/money-city';
+import { transactionService } from '@/services/transactionService';
 import { checkAndTriggerOverspendingAlert } from '@/services/notificationService';
 
 // ─── Types ────────────────────────────────────────────────────
@@ -35,10 +37,13 @@ export interface DashboardData {
 interface FinanceContextType {
     salary: SalaryConfig | null;
     expenses: Expense[];
+    transactions: Transaction[];
     dashboardData: DashboardData | null;
     setSalaryConfig: (config: SalaryConfig) => Promise<void>;
     addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
+    addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
     deleteExpense: (id: string) => Promise<void>;
+    deleteTransaction: (id: string) => Promise<void>;
     refreshData: () => Promise<void>;
     resetMonth: () => Promise<void>;
     isLoading: boolean;
@@ -93,10 +98,25 @@ function getTodayStr(): string {
     return new Date().toISOString().split('T')[0];
 }
 
-function computeDashboard(salary: SalaryConfig, expenses: Expense[]): DashboardData {
-    const savings = salary.savingsTarget !== undefined ? salary.savingsTarget : Math.round(salary.monthlySalary * salary.savingsRate);
-    const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
-    const spendableMoney = salary.monthlySalary - salary.fixedExpenses - savings;
+function computeDashboard(salary: SalaryConfig, expenses: Expense[], transactions: Transaction[]): DashboardData {
+    // Basic income from salary setup
+    let totalIncome = salary.monthlySalary;
+
+    // Add additional income from transactions
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    transactions.forEach(tx => {
+        const txDate = new Date(tx.date);
+        if (tx.type === 'income' && txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
+            totalIncome += tx.amount;
+        }
+    });
+
+    const savings = salary.savingsTarget !== undefined ? salary.savingsTarget : Math.round(totalIncome * salary.savingsRate);
+    const totalExpenses = expenses.reduce((s: number, e: Expense) => s + e.amount, 0);
+    const spendableMoney = totalIncome - salary.fixedExpenses - savings;
     const remainingBalance = spendableMoney - totalExpenses;
     const remainingDays = getRemainingDays(salary.salaryCreditDate);
     const dailySafeSpend = remainingDays > 0 ? Math.round(Math.max(remainingBalance, 0) / remainingDays) : 0;
@@ -104,14 +124,14 @@ function computeDashboard(salary: SalaryConfig, expenses: Expense[]): DashboardD
     // Calculate today's spending
     const todayStr = getTodayStr();
     const spentToday = expenses
-        .filter(e => e.date === todayStr)
-        .reduce((s, e) => s + e.amount, 0);
+        .filter((e: Expense) => e.date === todayStr)
+        .reduce((s: number, e: Expense) => s + e.amount, 0);
 
     // Predicted savings = savings target + whatever is left of spendable
     const predictedSavings = savings + Math.max(remainingBalance, 0);
 
     return {
-        monthlySalary: salary.monthlySalary,
+        monthlySalary: totalIncome,
         fixedExpenses: salary.fixedExpenses,
         savings,
         totalExpenses,
@@ -128,6 +148,7 @@ function computeDashboard(salary: SalaryConfig, expenses: Expense[]): DashboardD
 export function FinanceProvider({ children }: { children: ReactNode }) {
     const [salary, setSalary] = useState<SalaryConfig | null>(null);
     const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -135,10 +156,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         (async () => {
             try {
-                const [salaryStr, expensesStr, stipendStr] = await Promise.all([
+                const [salaryStr, expensesStr, stipendStr, loadedTransactions] = await Promise.all([
                     AsyncStorage.getItem(STORAGE_KEYS.SALARY),
                     AsyncStorage.getItem(STORAGE_KEYS.EXPENSES),
                     AsyncStorage.getItem(STORAGE_KEYS.STIPEND_SETUP),
+                    transactionService.getTransactions(),
                 ]);
 
                 let loadedSalary: SalaryConfig | null = salaryStr ? JSON.parse(salaryStr) : null;
@@ -160,9 +182,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
                 setSalary(loadedSalary);
                 setExpenses(loadedExpenses);
+                setTransactions(loadedTransactions);
 
                 if (loadedSalary) {
-                    setDashboardData(computeDashboard(loadedSalary, loadedExpenses));
+                    setDashboardData(computeDashboard(loadedSalary, loadedExpenses, loadedTransactions));
                 }
             } catch (e) {
                 console.error('Failed to load finance data', e);
@@ -180,9 +203,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         const savingsNum = config.savingsTarget !== undefined ? config.savingsTarget : Math.round(config.monthlySalary * config.savingsRate);
         const balance = config.monthlySalary - config.fixedExpenses - savingsNum;
         const daysLeft = getRemainingDays(config.salaryCreditDate);
-        const totalExp = expenses.reduce((s, e) => s + e.amount, 0);
+        const totalExp = expenses.reduce((s: number, e: Expense) => s + e.amount, 0);
         const todayStr = getTodayStr();
-        const spentToday = expenses.filter(e => e.date === todayStr).reduce((s, e) => s + e.amount, 0);
+        const spentToday = expenses.filter((e: Expense) => e.date === todayStr).reduce((s: number, e: Expense) => s + e.amount, 0);
 
         await AsyncStorage.setItem(STORAGE_KEYS.STIPEND_SETUP, JSON.stringify({
             totalSalary: config.monthlySalary,
@@ -194,8 +217,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             spentToday,
         }));
 
-        setDashboardData(computeDashboard(config, expenses));
-    }, [expenses]);
+        setDashboardData(computeDashboard(config, expenses, transactions));
+    }, [expenses, transactions]);
 
     const addExpenseItem = useCallback(async (expense: Omit<Expense, 'id'>) => {
         const newExpense: Expense = {
@@ -206,8 +229,21 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         setExpenses(updated);
         await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(updated));
 
+        // Also add to transactions list for history
+        const newTx: Transaction = {
+            id: newExpense.id,
+            type: 'expense',
+            amount: newExpense.amount,
+            category: newExpense.category,
+            source: 'manual',
+            date: new Date().getTime(),
+            note: newExpense.note
+        };
+        await transactionService.storeTransaction(newTx);
+        setTransactions([newTx, ...transactions]);
+
         if (salary) {
-            const newDashboard = computeDashboard(salary, updated);
+            const newDashboard = computeDashboard(salary, updated, [newTx, ...transactions]);
             setDashboardData(newDashboard);
 
             await AsyncStorage.setItem(STORAGE_KEYS.STIPEND_SETUP, JSON.stringify({
@@ -223,7 +259,35 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             // Trigger notification
             await checkAndTriggerOverspendingAlert(newDashboard.spentToday, newDashboard.dailySafeSpend);
         }
-    }, [expenses, salary]);
+    }, [expenses, salary, transactions]);
+
+    const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>) => {
+        const newTx: Transaction = {
+            id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+            ...transaction,
+        };
+
+        await transactionService.storeTransaction(newTx);
+        const updatedTxs = [newTx, ...transactions];
+        setTransactions(updatedTxs);
+
+        if (newTx.type === 'expense') {
+            const newExpense: Expense = {
+                id: newTx.id,
+                amount: newTx.amount,
+                category: newTx.category,
+                note: newTx.note || '',
+                date: new Date(newTx.date).toISOString().split('T')[0]
+            };
+            const updatedExpenses = [...expenses, newExpense];
+            setExpenses(updatedExpenses);
+            await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(updatedExpenses));
+        }
+
+        if (salary) {
+            setDashboardData(computeDashboard(salary, expenses, updatedTxs));
+        }
+    }, [transactions, expenses, salary]);
 
     const refreshData = useCallback(async () => {
         // Re-read from storage in case salary-setup.tsx wrote directly
@@ -231,6 +295,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             const stipendStr = await AsyncStorage.getItem(STORAGE_KEYS.STIPEND_SETUP);
             const salaryStr = await AsyncStorage.getItem(STORAGE_KEYS.SALARY);
             const expensesStr = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
+            const loadedTransactions = await transactionService.getTransactions();
 
             // Read raw current salary from storage instead of depending on context state
             let currentSalary: SalaryConfig | null = salaryStr ? JSON.parse(salaryStr) : null;
@@ -259,9 +324,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
             const loadedExpenses: Expense[] = expensesStr ? JSON.parse(expensesStr) : [];
             setExpenses(loadedExpenses);
+            setTransactions(loadedTransactions);
 
             if (currentSalary) {
-                setDashboardData(computeDashboard(currentSalary, loadedExpenses));
+                setDashboardData(computeDashboard(currentSalary, loadedExpenses, loadedTransactions));
             }
         } catch (e) {
             console.error('Failed to refresh data', e);
@@ -270,9 +336,13 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
     const resetMonth = useCallback(async () => {
         setExpenses([]);
+        setTransactions([]);
         await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
+        await AsyncStorage.removeItem(STORAGE_KEYS.SALARY); // Optional: also clear transactions from storage if needed
+        await AsyncStorage.setItem('@transactions_list', JSON.stringify([]));
+
         if (salary) {
-            const newDashboard = computeDashboard(salary, []);
+            const newDashboard = computeDashboard(salary, [], []);
             setDashboardData(newDashboard);
             await AsyncStorage.setItem(STORAGE_KEYS.STIPEND_SETUP, JSON.stringify({
                 totalSalary: salary.monthlySalary,
@@ -287,11 +357,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }, [salary]);
 
     const deleteExpense = useCallback(async (id: string) => {
-        const updated = expenses.filter(e => e.id !== id);
+        const updated = expenses.filter((e: Expense) => e.id !== id);
         setExpenses(updated);
         await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(updated));
+
+        // Also delete from transactions
+        await transactionService.deleteTransaction(id);
+        const updatedTxs = transactions.filter((tx: Transaction) => tx.id !== id);
+        setTransactions(updatedTxs);
+
         if (salary) {
-            const newDashboard = computeDashboard(salary, updated);
+            const newDashboard = computeDashboard(salary, updated, updatedTxs);
             setDashboardData(newDashboard);
             await AsyncStorage.setItem(STORAGE_KEYS.STIPEND_SETUP, JSON.stringify({
                 totalSalary: salary.monthlySalary,
@@ -303,17 +379,38 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                 spentToday: newDashboard.spentToday,
             }));
         }
-    }, [expenses, salary]);
+    }, [expenses, salary, transactions]);
+
+    const deleteTransaction = useCallback(async (id: string) => {
+        await transactionService.deleteTransaction(id);
+        const updatedTxs = transactions.filter((tx: Transaction) => tx.id !== id);
+        setTransactions(updatedTxs);
+
+        // If it was an expense, also delete from expenses
+        const relatedExpense = expenses.find((e: Expense) => e.id === id);
+        if (relatedExpense) {
+            const updatedExpenses = expenses.filter((e: Expense) => e.id !== id);
+            setExpenses(updatedExpenses);
+            await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(updatedExpenses));
+        }
+
+        if (salary) {
+            setDashboardData(computeDashboard(salary, expenses, updatedTxs));
+        }
+    }, [transactions, expenses, salary]);
 
     return (
         <FinanceContext.Provider
             value={{
                 salary,
                 expenses,
+                transactions,
                 dashboardData,
                 setSalaryConfig,
                 addExpense: addExpenseItem,
+                addTransaction,
                 deleteExpense,
+                deleteTransaction,
                 refreshData,
                 resetMonth,
                 isLoading,

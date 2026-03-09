@@ -18,8 +18,8 @@ export interface DetectedTransaction {
     isUnknown: boolean;
     /** Auto-suggested category based on merchant mapping */
     category: string;
-    /** Transaction type – currently only 'debit' is detected */
-    type: 'debit';
+    /** Transaction type – 'debit' or 'credit' */
+    type: 'debit' | 'credit';
     /** ISO date string (YYYY-MM-DD) */
     date: string;
     /** Original SMS timestamp in ms since epoch */

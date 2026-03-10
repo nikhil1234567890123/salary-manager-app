@@ -6,12 +6,14 @@ import CitySkyline from './CitySkyline';
 import CategoryModal from './CategoryModal';
 import { CityBuildingData } from '@/types/money-city';
 import { formatCurrency } from '@/utils/formatters';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface Props {
     size: number;
 }
 
 const MoneyCity: React.FC<Props> = ({ size }) => {
+    const theme = useAppTheme();
     const { buildings, totalSalary, totalSpent, hasData } = useMoneyCity(120);
     const [selectedBuilding, setSelectedBuilding] = useState<CityBuildingData | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
@@ -23,9 +25,9 @@ const MoneyCity: React.FC<Props> = ({ size }) => {
 
     if (!hasData && totalSalary === 0) {
         return (
-            <View style={[styles.emptyContainer, { width: size, height: size }]}>
-                <Ionicons name="business-outline" size={48} color="#4E4B47" />
-                <Text style={styles.emptyText}>
+            <View style={[styles.emptyContainer, { width: size, height: size, backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                <Ionicons name="business-outline" size={48} color={theme.colors.icon} />
+                <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
                     Your city is waiting for its first resident! Add expenses to build your skyline.
                 </Text>
             </View>
@@ -37,30 +39,30 @@ const MoneyCity: React.FC<Props> = ({ size }) => {
             {/* City Header / Energy Source */}
             <View style={styles.header}>
                 <View style={styles.energyLabelContainer}>
-                    <Text style={styles.energyLabel}>City Energy (Budget)</Text>
-                    <View style={styles.energyBadge}>
-                        <View style={styles.pulseDot} />
-                        <Text style={styles.energyValue}>₹{formatCurrency(totalSalary)}</Text>
+                    <Text style={[styles.energyLabel, { color: theme.colors.textSecondary }]}>City Energy (Budget)</Text>
+                    <View style={[styles.energyBadge, { backgroundColor: `${theme.colors.primary}1A`, borderColor: `${theme.colors.primary}4D` }]}>
+                        <View style={[styles.pulseDot, { backgroundColor: theme.colors.primary }]} />
+                        <Text style={[styles.energyValue, { color: theme.colors.primary }]}>₹{formatCurrency(totalSalary)}</Text>
                     </View>
                 </View>
 
                 <View style={styles.spendInfo}>
-                    <Text style={styles.spendLabel}>Total Built Cost</Text>
-                    <Text style={styles.spendValue}>₹{formatCurrency(totalSpent)}</Text>
+                    <Text style={[styles.spendLabel, { color: theme.colors.textSecondary }]}>Total Built Cost</Text>
+                    <Text style={[styles.spendValue, { color: theme.colors.text }]}>₹{formatCurrency(totalSpent)}</Text>
                 </View>
             </View>
 
             {/* The City Skyline */}
             <CitySkyline
                 buildings={buildings}
-                containerHeight={220}
+                containerHeight={250}
                 onBuildingPress={handleBuildingPress}
             />
 
             {/* Instructions */}
             <View style={styles.footer}>
-                <Ionicons name="information-circle-outline" size={14} color="#65625E" />
-                <Text style={styles.footerText}>Tap a building to see spending efficiency</Text>
+                <Ionicons name="information-circle-outline" size={14} color={theme.colors.textSecondary} />
+                <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>Tap a building to see spending efficiency</Text>
             </View>
 
             {/* Detail Modal */}
@@ -89,7 +91,6 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     energyLabel: {
-        color: '#A7A4A0',
         fontSize: 10,
         fontWeight: 'bold',
         textTransform: 'uppercase',
@@ -99,23 +100,19 @@ const styles = StyleSheet.create({
     energyBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(211, 167, 122, 0.1)',
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: 'rgba(211, 167, 122, 0.3)',
         alignSelf: 'flex-start',
     },
     pulseDot: {
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: '#D3A77A',
         marginRight: 8,
     },
     energyValue: {
-        color: '#D3A77A',
         fontSize: 16,
         fontWeight: '900',
     },
@@ -123,7 +120,6 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
     spendLabel: {
-        color: '#A7A4A0',
         fontSize: 10,
         fontWeight: 'bold',
         textTransform: 'uppercase',
@@ -131,7 +127,6 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     spendValue: {
-        color: '#F2EFEB',
         fontSize: 16,
         fontWeight: '800',
     },
@@ -142,22 +137,18 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
     footerText: {
-        color: '#65625E',
         fontSize: 10,
         fontWeight: 'bold',
         marginLeft: 6,
     },
     emptyContainer: {
-        backgroundColor: '#383633',
         borderRadius: 24,
         alignItems: 'center',
         justifyContent: 'center',
-        borderColor: '#4E4B47',
         borderWidth: 1,
         padding: 40,
     },
     emptyText: {
-        color: '#A7A4A0',
         fontSize: 14,
         fontWeight: '600',
         textAlign: 'center',

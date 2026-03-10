@@ -7,6 +7,7 @@ interface SettingsContextType {
     isLoading: boolean;
     updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
     toggleTheme: () => Promise<void>;
+    setTheme: (themeId: import('../types/theme').ThemeId) => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -17,9 +18,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         (async () => {
-            const loadedSettings = await SettingsService.loadSettings();
-            setSettings(loadedSettings);
-            setIsLoading(false);
+            console.log('[SettingsProvider] loadSettings started');
+            try {
+                const loadedSettings = await SettingsService.loadSettings();
+                console.log('[SettingsProvider] loadSettings finished:', loadedSettings);
+                setSettings(loadedSettings);
+            } catch (error) {
+                console.error('[SettingsProvider] loadSettings error:', error);
+            } finally {
+                console.log('[SettingsProvider] setting isLoading to false');
+                setIsLoading(false);
+            }
         })();
     }, []);
 
@@ -38,8 +47,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setSettings(newSettings);
     };
 
+    const setTheme = async (themeId: import('../types/theme').ThemeId) => {
+        const currentSettings = await SettingsService.loadSettings();
+        const newSettings = { ...currentSettings, activeThemeId: themeId };
+        await SettingsService.saveSettings(newSettings);
+        setSettings(newSettings);
+    };
+
     return (
-        <SettingsContext.Provider value={{ settings, isLoading, updateSetting, toggleTheme }}>
+        <SettingsContext.Provider value={{ settings, isLoading, updateSetting, toggleTheme, setTheme }}>
             {children}
         </SettingsContext.Provider>
     );

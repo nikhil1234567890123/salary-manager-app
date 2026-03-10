@@ -8,6 +8,7 @@ import Animated, {
     Easing,
     interpolateColor
 } from 'react-native-reanimated';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 // Create animated component for SVG Circle
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -27,6 +28,7 @@ export default function FinancialScoreCircle({
     size = 200,
     strokeWidth = 15,
 }: Props) {
+    const theme = useAppTheme();
     const animatedScore = useSharedValue(0);
 
     useEffect(() => {
@@ -46,7 +48,7 @@ export default function FinancialScoreCircle({
         const currentColor = interpolateColor(
             animatedScore.value,
             [0, 50, 100],
-            ['#EF6C6C', '#EACFA7', '#6CEF8A']
+            [theme.colors.danger, theme.colors.warning, theme.colors.success]
         );
 
         return {
@@ -64,7 +66,7 @@ export default function FinancialScoreCircle({
                         cx={size / 2}
                         cy={size / 2}
                         r={radius}
-                        stroke="#4E4B47"
+                        stroke={theme.colors.border}
                         strokeWidth={strokeWidth}
                         fill="transparent"
                     />
@@ -84,8 +86,8 @@ export default function FinancialScoreCircle({
 
             {/* Inner Label & Score */}
             <View style={[StyleSheet.absoluteFillObject, styles.centerText]}>
-                <Text style={styles.scoreText}>{score}</Text>
-                <Text style={styles.labelText}>{label}</Text>
+                <Text style={[styles.scoreText, { color: theme.colors.text }]}>{score}</Text>
+                <Text style={[styles.labelText, { color: theme.colors.textSecondary }]}>{label}</Text>
             </View>
         </View>
     );
@@ -103,13 +105,11 @@ const styles = StyleSheet.create({
     scoreText: {
         fontSize: 48,
         fontWeight: '900',
-        color: '#F2EFEB',
         textAlign: 'center',
     },
     labelText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#A7A4A0',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
         marginTop: 4,

@@ -102,6 +102,7 @@ export async function requestSmsPermission(): Promise<boolean> {
                             resolve(granted);
                         } catch (err) {
                             console.warn(err);
+                            await AsyncStorage.setItem(STORAGE_KEYS.SMS_PERMISSION_GRANTED, 'false');
                             resolve(false);
                         }
                     },

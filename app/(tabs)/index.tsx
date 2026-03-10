@@ -18,9 +18,12 @@ import Animated, {
   Easing,
   FadeOutLeft,
   Layout,
+  useAnimatedScrollHandler
 } from "react-native-reanimated";
 import { useFinance } from '@/context/FinanceContext';
 import { useImpact } from '@/hooks/useImpact';
+import { PremiumBackground3D } from '@/components/PremiumBackground3D';
+import { Butterfly } from '@/components/Butterfly';
 import {
   predictEndOfMonth,
   getWeeklySpendingTrend,
@@ -32,6 +35,7 @@ import { formatCurrency } from '@/utils/formatters';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSettings } from '@/store/settingsStore';
 import PaydayCelebrationModal, { createPaydayEvent } from '@/components/PaydayCelebrationModal';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -40,7 +44,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const { height } = Dimensions.get('window');
 
 // Sub-component for individual animated bars to follow Rules of Hooks
-const WeeklyBar = ({ barH, weeklyAnim, isToday, label }: { barH: number; weeklyAnim: any; isToday: boolean; label: string }) => {
+const WeeklyBar = ({ barH, weeklyAnim, isToday, label, theme }: { barH: number; weeklyAnim: any; isToday: boolean; label: string; theme: any }) => {
   const animatedStyle = useAnimatedStyle(() => ({
     height: `${barH * weeklyAnim.value}%`,
   }));
@@ -51,13 +55,13 @@ const WeeklyBar = ({ barH, weeklyAnim, isToday, label }: { barH: number; weeklyA
         className="w-full rounded-md"
         style={[
           {
-            backgroundColor: isToday ? '#D3A77A' : '#4E4B47',
+            backgroundColor: isToday ? theme.colors.primary : theme.colors.border,
             minHeight: 3,
           },
           animatedStyle,
         ]}
       />
-      <Text className={`text-[8px] font-bold mt-1 ${isToday ? 'text-[#D3A77A]' : 'text-[#65625E]'}`}>{label}</Text>
+      <Text className="text-[8px] font-bold mt-1" style={{ color: isToday ? theme.colors.primary : theme.colors.icon }}>{label}</Text>
     </View>
   );
 };
@@ -65,6 +69,7 @@ const WeeklyBar = ({ barH, weeklyAnim, isToday, label }: { barH: number; weeklyA
 export default function HomeScreen() {
   const { salary, dashboardData, expenses, setSalaryConfig, refreshData } = useFinance();
   const { settings } = useSettings();
+  const theme = useAppTheme();
 
   const {
     detectedTransactions,
@@ -98,6 +103,11 @@ export default function HomeScreen() {
   const bgStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: bgAnim.value }],
   }));
+
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
 
   // Progress bar animation
   const progressWidth = useSharedValue(0);
@@ -225,18 +235,25 @@ export default function HomeScreen() {
   const homeInsight = useMemo(() => getHomeInsight(expenses, dailyLimit), [expenses, dailyLimit]);
 
   return (
-    <SafeAreaView className="flex-1 bg-[#2C2B29]" edges={['top']}>
-      <StatusBar style="light" />
+    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }} edges={['top']}>
+      <StatusBar style={theme.isDark ? "light" : "dark"} />
 
-      {/* Subtle Background */}
+      {/* Immserive 3D Background */}
+      <PremiumBackground3D scrollY={scrollY} />
+
+      {/* Pink Theme Special: Butterfly */}
+      {settings.activeThemeId === 'pinkFinance' && <Butterfly />}
+
       <View className="absolute inset-0 overflow-hidden">
         <Animated.View
-          style={[bgStyle, { width: height, height: height, borderRadius: height / 2 }]}
-          className="absolute -top-[20%] -right-[40%] bg-[#D3A77A] opacity-[0.06]"
+          style={[bgStyle, { width: height, height: height, borderRadius: height / 2, backgroundColor: theme.colors.primary }]}
+          className="absolute -top-[20%] -right-[40%] opacity-[0.06]"
         />
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         className="flex-1 px-6"
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -251,16 +268,17 @@ export default function HomeScreen() {
         {isExpoGo && (
           <Animated.View
             entering={FadeInDown.delay(400).duration(800)}
-            className="mb-6 mt-4 bg-[#3E3A35] border border-[#D3A77A]/30 rounded-2xl p-4 overflow-hidden"
+            className="mb-6 mt-4 border rounded-2xl p-4 overflow-hidden"
+            style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.primary + '4D' }}
           >
             <View className="flex-row items-center mb-3">
-              <View className="w-8 h-8 rounded-full bg-[#D3A77A]/20 items-center justify-center mr-3">
-                <Ionicons name="flask-outline" size={18} color="#D3A77A" />
+              <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.colors.primary + '33' }}>
+                <Ionicons name="flask-outline" size={18} color={theme.colors.primary} />
               </View>
-              <Text className="text-[#D3A77A] font-bold text-sm tracking-wide">SIMULATION MODE</Text>
+              <Text className="font-bold text-sm tracking-wide" style={{ color: theme.colors.primary }}>SIMULATION MODE</Text>
             </View>
 
-            <Text className="text-[#A7A4A0] text-xs leading-[18px] mb-4">
+            <Text className="text-xs leading-[18px] mb-4" style={{ color: theme.colors.textSecondary }}>
               Expo Go cannot read real SMS. Copy your bank SMS and paste it below to test "Auto-Detection".
             </Text>
 
@@ -270,10 +288,11 @@ export default function HomeScreen() {
                 setPasteModalVisible(true);
               }}
               activeOpacity={0.8}
-              className="flex-row items-center bg-[#D3A77A]/10 border border-[#D3A77A] py-3 px-5 rounded-2xl"
+              className="flex-row items-center border py-3 px-5 rounded-2xl"
+              style={{ backgroundColor: theme.colors.primary + '1A', borderColor: theme.colors.primary }}
             >
-              <Ionicons name="clipboard-outline" size={18} color="#D3A77A" />
-              <Text className="text-[#D3A77A] font-bold text-sm ml-2">PASTE BANK SMS</Text>
+              <Ionicons name="clipboard-outline" size={18} color={theme.colors.primary} />
+              <Text className="font-bold text-sm ml-2" style={{ color: theme.colors.primary }}>PASTE BANK SMS</Text>
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -282,17 +301,19 @@ export default function HomeScreen() {
         {settings.offlinePrivacyMode && (
           <Animated.View
             entering={FadeInDown.duration(400)}
-            className="flex-row items-center bg-[#1A3320] border border-[#2D5C3D] rounded-full px-4 py-2 mt-4 mb-2 self-start"
+            className="flex-row items-center border rounded-full px-4 py-2 mt-4 mb-2 self-start"
+            style={{ backgroundColor: theme.colors.success + '1A', borderColor: theme.colors.success + '4D' }}
           >
-            <Ionicons name="shield-checkmark" size={14} color="#6BCB77" />
-            <Text className="text-[#6BCB77] text-[10px] font-bold uppercase tracking-widest ml-2">Local Data Only</Text>
+            <Ionicons name="shield-checkmark" size={14} color={theme.colors.success} />
+            <Text className="text-[10px] font-bold uppercase tracking-widest ml-2" style={{ color: theme.colors.success }}>Local Data Only</Text>
           </Animated.View>
         )}
 
         {/* Header */}
         <Animated.View entering={FadeInDown.duration(600)} className="flex-row justify-between items-center mb-8 mt-6">
           <View className="flex-row items-center">
-            <View className="w-12 h-12 bg-[#3E3A35] rounded-xl items-center justify-center mr-3 border border-[#D3A77A]/30 overflow-hidden shadow-lg shadow-[#D3A77A]/10">
+            <View className="w-12 h-12 rounded-xl items-center justify-center mr-3 border overflow-hidden shadow-lg"
+              style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.primary + '4D', shadowColor: theme.colors.primary }}>
               <Image
                 source={require("../../assets/images/app_logo_fixed.png")}
                 style={{ width: "100%", height: "100%" }}
@@ -300,30 +321,32 @@ export default function HomeScreen() {
               />
             </View>
             <View>
-              <Text className="text-[#A7A4A0] font-medium text-xs tracking-widest uppercase mb-0.5">Overview</Text>
-              <Text className="text-2xl font-black text-[#F2EFEB]">Salary Manager</Text>
+              <Text className="font-medium text-xs tracking-widest uppercase mb-0.5" style={{ color: theme.colors.textSecondary }}>Overview</Text>
+              <Text className="text-2xl font-black" style={{ color: theme.colors.text }}>Salary Manager</Text>
             </View>
           </View>
+
           <TouchableOpacity
             onPress={() => {
               impact.light();
               setShowSetup(!showSetup);
             }}
-            className="w-12 h-12 bg-[#3E3A35] rounded-full items-center justify-center border border-[#5D5A54]"
+            className="w-12 h-12 rounded-full items-center justify-center border ml-4"
+            style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}
           >
-            <Ionicons name="settings-outline" size={20} color="#D3A77A" />
+            <Ionicons name="settings-outline" size={20} color={theme.colors.primary} />
           </TouchableOpacity>
         </Animated.View>
 
         {/* Background AI Status */}
         <Animated.View entering={FadeInDown.duration(600).delay(100)} className="flex-row mb-6" style={{ gap: 10 }}>
-          <View className="flex-1 bg-[#3E3A35]/50 px-4 py-4 rounded-2xl border border-[#4E4B47] flex-row items-center">
-            <View className="w-10 h-10 rounded-full bg-[#2C2B29] items-center justify-center mr-3 border border-[#5D5A54]/50">
-              <Ionicons name="scan-outline" size={18} color="#D3A77A" />
+          <View className="flex-1 px-4 py-4 rounded-2xl border flex-row items-center" style={{ backgroundColor: theme.colors.surface + '80', borderColor: theme.colors.border }}>
+            <View className="w-10 h-10 rounded-full items-center justify-center mr-3 border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+              <Ionicons name="scan-outline" size={18} color={theme.colors.primary} />
             </View>
             <View className="flex-1">
-              <Text className="text-[#A7A4A0] text-[10px] font-bold uppercase tracking-widest mb-1">Background AI</Text>
-              <Text className="text-[#F2EFEB] text-xs font-bold">Auto-Entry Active</Text>
+              <Text className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: theme.colors.textSecondary }}>Background AI</Text>
+              <Text className="text-xs font-bold" style={{ color: theme.colors.text }}>Auto-Entry Active</Text>
             </View>
             <TouchableOpacity
               onPress={async () => {
@@ -335,9 +358,10 @@ export default function HomeScreen() {
                   Alert.alert("No Transactions Found", "We checked your recent SMS but didn't find any new bank debit messages.");
                 }
               }}
-              className="bg-[#D3A77A] px-3 py-2 rounded-lg"
+              className="px-3 py-2 rounded-lg"
+              style={{ backgroundColor: theme.colors.primary }}
             >
-              <Text className="text-[#2B231A] font-bold text-[10px] uppercase">Scan Now</Text>
+              <Text className="font-bold text-[10px] uppercase" style={{ color: theme.colors.background }}>Scan Now</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -346,7 +370,7 @@ export default function HomeScreen() {
         {detectedTransactions.length > 0 && (
           <View className="mb-6">
             <View className="flex-row justify-between items-center mb-4 px-1">
-              <Text className="text-[#D3A77A] font-bold text-xs uppercase tracking-widest">
+              <Text className="font-bold text-xs uppercase tracking-widest" style={{ color: theme.colors.primary }}>
                 Pending Confirmation ({detectedTransactions.length})
               </Text>
             </View>
@@ -357,21 +381,22 @@ export default function HomeScreen() {
                 entering={FadeInDown.delay(100 * idx)}
                 exiting={FadeOutLeft.duration(300)}
                 layout={Layout.springify()}
-                className="bg-[#3E3A35] rounded-2xl p-4 border border-[#D3A77A]/40 mb-3 shadow-sm"
+                className="rounded-2xl p-4 border mb-3 shadow-sm"
+                style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.primary + '66' }}
               >
                 <View className="flex-row justify-between items-start mb-3">
                   <View className="flex-1">
                     <View className="flex-row items-center mb-1">
-                      <View className="w-2 h-2 rounded-full bg-[#D3A77A] mr-2" />
-                      <Text className="text-[#F2EFEB] font-bold text-sm" numberOfLines={1}>
+                      <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: theme.colors.primary }} />
+                      <Text className="font-bold text-sm" numberOfLines={1} style={{ color: theme.colors.text }}>
                         {tx.merchant}
                       </Text>
                     </View>
-                    <Text className="text-[#A7A4A0] text-[10px] font-medium uppercase tracking-tighter">
+                    <Text className="text-[10px] font-medium uppercase tracking-tighter" style={{ color: theme.colors.textSecondary }}>
                       {tx.category} • {tx.date}
                     </Text>
                   </View>
-                  <Text className="text-[#D3A77A] font-black text-lg">
+                  <Text className="font-black text-lg" style={{ color: theme.colors.primary }}>
                     ₹{formatCurrency(tx.amount)}
                   </Text>
                 </View>
@@ -383,9 +408,10 @@ export default function HomeScreen() {
                       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                       await confirmTransaction(tx);
                     }}
-                    className="flex-1 bg-[#D3A77A] py-2.5 rounded-xl items-center"
+                    className="flex-1 py-2.5 rounded-xl items-center"
+                    style={{ backgroundColor: theme.colors.primary }}
                   >
-                    <Text className="text-[#2B231A] font-bold text-xs">CONFIRM</Text>
+                    <Text className="font-bold text-xs" style={{ color: theme.colors.background }}>CONFIRM</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={async () => {
@@ -393,15 +419,17 @@ export default function HomeScreen() {
                       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                       await dismissTransaction(tx);
                     }}
-                    className="bg-[#2C2B29] px-4 py-2.5 rounded-xl items-center border border-[#4E4B47]"
+                    className="px-4 py-2.5 rounded-xl items-center border"
+                    style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
                   >
-                    <Ionicons name="trash-outline" size={16} color="#A7A4A0" />
+                    <Ionicons name="trash-outline" size={16} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
               </Animated.View>
             ))}
           </View>
         )}
+
 
         {/* Main Balance Card */}
         <Animated.View
@@ -413,26 +441,27 @@ export default function HomeScreen() {
             onPressIn={handleCardPressIn}
             onPressOut={handleCardPressOut}
             onPress={() => impact.light()}
-            className="bg-[#383633] rounded-[28px] p-7 shadow-lg border border-[#4E4B47] mb-6 relative overflow-hidden"
+            className="rounded-[28px] p-7 shadow-lg border mb-6 relative overflow-hidden"
+            style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}
           >
-            <View className="absolute -right-8 -top-8 w-32 h-32 bg-[#D3A77A]/10 rounded-full" />
-            <View className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#D3A77A]/5 rounded-full" />
+            <View className="absolute -right-8 -top-8 w-32 h-32 rounded-full" style={{ backgroundColor: theme.colors.primary + '1A' }} />
+            <View className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full" style={{ backgroundColor: theme.colors.primary + '0D' }} />
 
-            <Text className="text-[#A7A4A0] font-semibold text-xs tracking-widest uppercase mb-2">Remaining Balance</Text>
-            <Text className="text-[42px] font-black text-[#D3A77A] mb-6 tracking-tighter">
-              <Text className="text-3xl text-[#A87D56]">₹</Text>
+            <Text className="font-semibold text-xs tracking-widest uppercase mb-2" style={{ color: theme.colors.textSecondary }}>Remaining Balance</Text>
+            <Text className="text-[42px] font-black mb-6 tracking-tighter" style={{ color: theme.colors.text }}>
+              <Text className="text-3xl" style={{ color: theme.colors.primary }}>₹</Text>
               {formatCurrency(data?.remainingBalance ?? 0)}
             </Text>
 
-            <View className="bg-[#2C2B29]/60 rounded-2xl p-4 border border-[#4A4845]">
+            <View className="rounded-2xl p-4 border" style={{ backgroundColor: theme.colors.background + '99', borderColor: theme.colors.border }}>
               <View className="flex-row justify-between items-center mb-3">
-                <Text className="text-[#A7A4A0] font-medium text-xs uppercase tracking-wider">Monthly Usage</Text>
-                <Text className="text-[#F2EFEB] font-bold text-sm">{usagePercent}%</Text>
+                <Text className="font-medium text-xs uppercase tracking-wider" style={{ color: theme.colors.textSecondary }}>Monthly Usage</Text>
+                <Text className="font-bold text-sm" style={{ color: theme.colors.text }}>{usagePercent}%</Text>
               </View>
-              <Text className="text-[#65625E] text-[10px] font-bold mb-2">
+              <Text className="text-[10px] font-bold mb-2" style={{ color: theme.colors.textSecondary }}>
                 ₹{formatCurrency(spent)} of ₹{formatCurrency(spendable)} used
               </Text>
-              <View className="h-[6px] bg-[#3E3A35] rounded-full overflow-hidden">
+              <View className="h-[6px] rounded-full overflow-hidden" style={{ backgroundColor: theme.colors.surface }}>
                 <Animated.View
                   className="h-full rounded-full"
                   style={[
@@ -447,26 +476,26 @@ export default function HomeScreen() {
 
         {/* Stats Row */}
         <Animated.View entering={FadeInDown.duration(600).delay(200)} className="flex-row justify-between mb-6" style={{ gap: 12 }}>
-          <View className="flex-1 bg-[#3E3A35] rounded-[24px] p-5 border border-[#4E4B47]">
-            <View className="w-8 h-8 rounded-full bg-[#2C2B29] items-center justify-center mb-3 border border-[#5D5A54]">
-              <Ionicons name="shield-checkmark" size={14} color="#D3A77A" />
+          <View className="flex-1 rounded-[24px] p-5 border" style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}>
+            <View className="w-8 h-8 rounded-full items-center justify-center mb-3 border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+              <Ionicons name="shield-checkmark" size={14} color={theme.colors.success} />
             </View>
-            <Text className="text-[#A7A4A0] text-[10px] font-bold uppercase tracking-widest mb-1">Daily Safe Spend</Text>
-            <Text className="text-xl font-bold text-[#F2EFEB]">₹{formatCurrency(data?.dailySafeSpend ?? 0)}</Text>
-            <Text className="text-[#65625E] text-[9px] mt-2 leading-[12px]">{dailyStatusText}</Text>
+            <Text className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: theme.colors.textSecondary }}>Daily Safe Spend</Text>
+            <Text className="text-xl font-bold" style={{ color: theme.colors.text }}>₹{formatCurrency(data?.dailySafeSpend ?? 0)}</Text>
+            <Text className="text-[9px] mt-2 leading-[12px]" style={{ color: theme.colors.icon }}>{dailyStatusText}</Text>
           </View>
 
-          <View className={`flex-1 rounded-[24px] p-5 border ${isOverDailyLimit ? 'bg-[#4A2F2F] border-[#663A3A]' : 'bg-[#3E3A35] border-[#4E4B47]'}`}>
-            <View className={`w-8 h-8 rounded-full items-center justify-center mb-3 border ${isOverDailyLimit ? 'bg-[#382020] border-[#5C2B2B]' : 'bg-[#2C2B29] border-[#5D5A54]'}`}>
+          <View className={`flex-1 rounded-[24px] p-5 border`} style={{ backgroundColor: isOverDailyLimit ? theme.colors.danger + '33' : theme.colors.surface, borderColor: isOverDailyLimit ? theme.colors.danger + '80' : theme.colors.border }}>
+            <View className={`w-8 h-8 rounded-full items-center justify-center mb-3 border`} style={{ backgroundColor: isOverDailyLimit ? theme.colors.danger + '4D' : theme.colors.background, borderColor: isOverDailyLimit ? theme.colors.danger : theme.colors.border }}>
               <Ionicons
                 name={isOverDailyLimit ? "warning" : "trending-down"}
                 size={14}
-                color={isOverDailyLimit ? "#EF6C6C" : "#D3A77A"}
+                color={isOverDailyLimit ? theme.colors.danger : theme.colors.primary}
               />
             </View>
-            <Text className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isOverDailyLimit ? 'text-[#EF6C6C]' : 'text-[#D3A77A]'}`}>Spent Today</Text>
-            <Text className={`text-xl font-bold ${isOverDailyLimit ? 'text-[#FFE5E5]' : 'text-[#F2EFEB]'}`}>₹{formatCurrency(spentToday)}</Text>
-            <Text className="text-[#65625E] text-[9px] mt-2 leading-[12px]">
+            <Text className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: isOverDailyLimit ? theme.colors.danger : theme.colors.primary }}>Spent Today</Text>
+            <Text className="text-xl font-bold" style={{ color: theme.colors.text }}>₹{formatCurrency(spentToday)}</Text>
+            <Text className="text-[9px] mt-2 leading-[12px]" style={{ color: theme.colors.icon }}>
               {latestExpense
                 ? `Last: ${latestExpense.note || latestExpense.category} ₹${formatCurrency(latestExpense.amount)}`
                 : 'No expenses recorded today.'}
@@ -475,31 +504,31 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Smart Projection */}
-        <Animated.View entering={FadeInDown.duration(600).delay(300)} className="bg-[#383633] rounded-[24px] p-5 border border-[#4E4B47] flex-row items-center mb-6">
-          <View className="w-12 h-12 bg-[#2C2B29] rounded-xl items-center justify-center mr-4 border border-[#5D5A54]">
-            <Ionicons name="sparkles" size={20} color="#D3A77A" />
+        <Animated.View entering={FadeInDown.duration(600).delay(300)} className="rounded-[24px] p-5 border flex-row items-center mb-6" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+          <View className="w-12 h-12 rounded-xl items-center justify-center mr-4 border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+            <Ionicons name="sparkles" size={20} color={theme.colors.primary} />
           </View>
           <View className="flex-1">
-            <Text className="text-[#A7A4A0] text-[10px] font-bold uppercase tracking-widest mb-1">Smart Projection</Text>
-            <Text className="text-[#F2EFEB] leading-[20px] text-sm">{prediction.message}</Text>
+            <Text className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: theme.colors.textSecondary }}>Smart Projection</Text>
+            <Text className="leading-[20px] text-sm" style={{ color: theme.colors.text }}>{prediction.message}</Text>
           </View>
         </Animated.View>
 
         {/* Remaining Days */}
-        <Animated.View entering={FadeInDown.duration(600).delay(400)} className="bg-[#3E3A35] rounded-[24px] p-5 border border-[#4E4B47] flex-row items-center mb-6">
-          <View className="w-12 h-12 bg-[#2C2B29] rounded-xl items-center justify-center mr-4 border border-[#5D5A54]">
-            <Ionicons name="calendar-outline" size={20} color="#A7A4A0" />
+        <Animated.View entering={FadeInDown.duration(600).delay(400)} className="rounded-[24px] p-5 border flex-row items-center mb-6" style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}>
+          <View className="w-12 h-12 rounded-xl items-center justify-center mr-4 border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+            <Ionicons name="calendar-outline" size={20} color={theme.colors.textSecondary} />
           </View>
           <View className="flex-1">
-            <Text className="text-[#A7A4A0] text-[10px] font-bold uppercase tracking-widest mb-1">Remaining Days</Text>
-            <Text className="text-[#F2EFEB] text-lg font-bold">{remainingDays} days left</Text>
-            <Text className="text-[#65625E] text-[10px] mt-1">Safe spending available: ₹{formatCurrency(dailyLimit)}/day</Text>
+            <Text className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: theme.colors.textSecondary }}>Remaining Days</Text>
+            <Text className="text-lg font-bold" style={{ color: theme.colors.text }}>{remainingDays} days left</Text>
+            <Text className="text-[10px] mt-1" style={{ color: theme.colors.icon }}>Safe spending available: ₹{formatCurrency(dailyLimit)}/day</Text>
           </View>
         </Animated.View>
 
         {/* Weekly spending chart */}
-        <Animated.View entering={FadeInDown.duration(600).delay(450)} className="bg-[#383633] rounded-[24px] p-5 border border-[#4E4B47] mb-6">
-          <Text className="text-[#A7A4A0] text-[10px] font-bold uppercase tracking-widest mb-4">Last 7 Days</Text>
+        <Animated.View entering={FadeInDown.duration(600).delay(450)} className="rounded-[24px] p-5 border mb-6" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+          <Text className="text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: theme.colors.textSecondary }}>Last 7 Days</Text>
           <View className="flex-row items-end justify-between" style={{ height: 48, gap: 6 }}>
             {weeklyTrend.map((day, i) => {
               const barH = weekMax > 0 ? Math.max((day.amount / weekMax) * 100, 4) : 4;
@@ -511,6 +540,7 @@ export default function HomeScreen() {
                   weeklyAnim={weeklyAnim}
                   isToday={isToday}
                   label={day.label}
+                  theme={theme}
                 />
               );
             })}
@@ -518,18 +548,18 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Spending Insight */}
-        <Animated.View entering={FadeInDown.duration(600).delay(500)} className="bg-[#3E3A35] rounded-[24px] p-5 border border-[#4E4B47] flex-row items-center mb-12">
-          <View className="w-12 h-12 bg-[#2C2B29] rounded-xl items-center justify-center mr-4 border border-[#5D5A54]">
-            <Ionicons name="bulb-outline" size={20} color="#EACFA7" />
+        <Animated.View entering={FadeInDown.duration(600).delay(500)} className="rounded-[24px] p-5 border flex-row items-center mb-12" style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}>
+          <View className="w-12 h-12 rounded-xl items-center justify-center mr-4 border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+            <Ionicons name="bulb-outline" size={20} color={theme.colors.warning} />
           </View>
           <View className="flex-1">
-            <Text className="text-[#A7A4A0] text-[10px] font-bold uppercase tracking-widest mb-1">Insight</Text>
-            <Text className="text-[#F2EFEB] text-sm leading-[20px]">{homeInsight}</Text>
+            <Text className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: theme.colors.textSecondary }}>Insight</Text>
+            <Text className="text-sm leading-[20px]" style={{ color: theme.colors.text }}>{homeInsight}</Text>
           </View>
         </Animated.View>
 
         <View className="h-24" />
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Payday Celebration Modal */}
       <PaydayCelebrationModal
@@ -553,30 +583,31 @@ export default function HomeScreen() {
         <View className="flex-1 bg-black/80 justify-center px-6">
           <Animated.View
             entering={FadeInDown.duration(400)}
-            className="bg-[#3E3A35] rounded-3xl p-6 border border-[#D3A77A]/30"
+            className="rounded-3xl p-6 border"
+            style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.primary + '4D' }}
           >
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-[#D3A77A] text-xl font-bold">Manual SMS Detection</Text>
+              <Text className="text-xl font-bold" style={{ color: theme.colors.primary }}>Manual SMS Detection</Text>
               <TouchableOpacity onPress={() => {
                 impact.light();
                 setPasteModalVisible(false);
               }}>
-                <Ionicons name="close" size={24} color="#A7A4A0" />
+                <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            <Text className="text-[#A7A4A0] text-sm mb-4 leading-5">
+            <Text className="text-sm mb-4 leading-5" style={{ color: theme.colors.textSecondary }}>
               Paste the full body of a bank transaction SMS below. The app will parse it just like a real message.
             </Text>
 
-            <View className="bg-[#2C2B29] rounded-2xl border border-[#D3A77A]/20 p-4 mb-6">
+            <View className="rounded-2xl border p-4 mb-6" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.primary + '33' }}>
               <TextInput
                 placeholder="Example: INR 250 spent on UPI at Swiggy..."
-                placeholderTextColor="#5D5A54"
+                placeholderTextColor={theme.colors.border}
                 multiline
                 numberOfLines={4}
-                className="text-white text-[15px] max-h-32 text-left"
-                style={{ textAlignVertical: 'top' }}
+                className="text-[15px] max-h-32 text-left"
+                style={{ textAlignVertical: 'top', color: theme.colors.text }}
                 value={pastedSms}
                 onChangeText={setPastedSms}
               />
@@ -602,9 +633,10 @@ export default function HomeScreen() {
                 }
               }}
               disabled={!pastedSms.trim()}
-              className={`py-4 rounded-xl items-center ${pastedSms.trim() ? 'bg-[#D3A77A]' : 'bg-[#D3A77A]/30'}`}
+              className="py-4 rounded-xl items-center"
+              style={{ backgroundColor: pastedSms.trim() ? theme.colors.primary : theme.colors.primary + '4D' }}
             >
-              <Text className={`font-bold text-[15px] ${pastedSms.trim() ? 'text-[#2B231A]' : 'text-[#D3A77A]/50'}`}>
+              <Text className="font-bold text-[15px]" style={{ color: pastedSms.trim() ? theme.colors.background : theme.colors.primary + '80' }}>
                 PROCESS SMS
               </Text>
             </TouchableOpacity>
@@ -619,9 +651,9 @@ export default function HomeScreen() {
         transparent={true}
       >
         <View className="flex-1 bg-black/60 justify-end">
-          <Animated.View entering={FadeInDown} className="bg-[#383633] rounded-t-[40px] p-8 border-t border-[#4E4B47] pb-12">
+          <Animated.View entering={FadeInDown} className="rounded-t-[40px] p-8 border-t pb-12" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
             <View className="flex-row justify-between items-center mb-8">
-              <Text className="text-[#D3A77A] font-bold text-xl uppercase tracking-widest">
+              <Text className="font-bold text-xl uppercase tracking-widest" style={{ color: theme.colors.primary }}>
                 {hasSalary ? 'Edit Salary Config' : 'Quick Setup'}
               </Text>
               {hasSalary && (
@@ -629,21 +661,22 @@ export default function HomeScreen() {
                   impact.light();
                   setShowSetup(false);
                 }}>
-                  <View className="w-10 h-10 rounded-full bg-[#2C2B29] items-center justify-center border border-[#4E4B47]">
-                    <Ionicons name="close" size={24} color="#A7A4A0" />
+                  <View className="w-10 h-10 rounded-full items-center justify-center border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+                    <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
                   </View>
                 </TouchableOpacity>
               )}
             </View>
 
             <View className="mb-6">
-              <Text className="text-[#A7A4A0] text-xs font-bold uppercase tracking-widest mb-3 ml-1">Monthly Salary</Text>
-              <View className="flex-row items-center bg-[#2C2B29] rounded-2xl px-5 py-5 border border-[#4E4B47]">
-                <Text className="text-[#D3A77A] font-bold text-2xl mr-2">₹</Text>
+              <Text className="text-xs font-bold uppercase tracking-widest mb-3 ml-1" style={{ color: theme.colors.textSecondary }}>Monthly Salary</Text>
+              <View className="flex-row items-center rounded-2xl px-5 py-5 border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+                <Text className="font-bold text-2xl mr-2" style={{ color: theme.colors.primary }}>₹</Text>
                 <TextInput
-                  className="flex-1 text-[#F2EFEB] text-2xl font-black p-0"
+                  className="flex-1 text-2xl font-black p-0"
+                  style={{ color: theme.colors.text }}
                   placeholder="50000"
-                  placeholderTextColor="#4E4B47"
+                  placeholderTextColor={theme.colors.border}
                   keyboardType="numeric"
                   value={salaryInput}
                   onChangeText={setSalaryInput}
@@ -652,13 +685,14 @@ export default function HomeScreen() {
             </View>
 
             <View className="mb-8">
-              <Text className="text-[#A7A4A0] text-xs font-bold uppercase tracking-widest mb-3 ml-1">Fixed Expenses</Text>
-              <View className="flex-row items-center bg-[#2C2B29] rounded-2xl px-5 py-5 border border-[#4E4B47]">
-                <Text className="text-[#D3A77A] font-bold text-2xl mr-2">₹</Text>
+              <Text className="text-xs font-bold uppercase tracking-widest mb-3 ml-1" style={{ color: theme.colors.textSecondary }}>Fixed Expenses</Text>
+              <View className="flex-row items-center rounded-2xl px-5 py-5 border" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+                <Text className="font-bold text-2xl mr-2" style={{ color: theme.colors.primary }}>₹</Text>
                 <TextInput
-                  className="flex-1 text-[#F2EFEB] text-2xl font-black p-0"
+                  className="flex-1 text-2xl font-black p-0"
+                  style={{ color: theme.colors.text }}
                   placeholder="15000"
-                  placeholderTextColor="#4E4B47"
+                  placeholderTextColor={theme.colors.border}
                   keyboardType="numeric"
                   value={fixedInput}
                   onChangeText={setFixedInput}
@@ -672,9 +706,10 @@ export default function HomeScreen() {
                 handleSaveSalary();
               }}
               activeOpacity={0.8}
-              className="bg-[#D3A77A] py-5 rounded-2xl items-center shadow-lg shadow-[#D3A77A]/20"
+              className="py-5 rounded-2xl items-center shadow-lg"
+              style={{ backgroundColor: theme.colors.primary, shadowColor: theme.colors.primary }}
             >
-              <Text className="text-[#2B231A] font-black text-lg uppercase tracking-wider">Start Tracking</Text>
+              <Text className="font-black text-lg uppercase tracking-wider" style={{ color: theme.colors.background }}>Start Tracking</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>

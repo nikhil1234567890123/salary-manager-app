@@ -10,6 +10,7 @@ import { useFinance } from '@/context/FinanceContext';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useImpact } from '@/hooks/useImpact';
 import { formatCurrency } from '@/utils/formatters';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 // ─── Visual Intelligence Components ──────────────────────────────
 import { useFinancialScore } from '@/hooks/useFinancialScore';
@@ -39,6 +40,7 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export default function DashboardScreen() {
     const router = useRouter();
+    const theme = useAppTheme();
     const { dashboardData, expenses, transactions, refreshData, deleteExpense, deleteTransaction } = useFinance();
     const impact = useImpact();
 
@@ -64,36 +66,36 @@ export default function DashboardScreen() {
             label: 'Total Salary',
             value: `₹${formatCurrency(data?.monthlySalary ?? 0)}`,
             icon: 'wallet-outline' as const,
-            color: '#D3A77A',
+            color: theme.colors.primary,
         },
         {
             label: 'Total Spent',
             value: `₹${formatCurrency(data?.totalExpenses ?? 0)}`,
             icon: 'trending-down-outline' as const,
-            color: '#EF6C6C',
+            color: theme.colors.danger,
         },
         {
             label: 'Saved',
             value: `₹${formatCurrency(data?.savings ?? 0)}`,
             icon: 'leaf-outline' as const,
-            color: '#6BCB77',
+            color: theme.colors.success,
         },
         {
             label: 'Left',
             value: `₹${formatCurrency(data?.remainingBalance ?? 0)}`,
             icon: 'cash-outline' as const,
-            color: '#4FC1E8',
+            color: theme.colors.accent,
         },
     ];
 
     return (
-        <View className="flex-1 bg-[#2C2B29]">
-            <StatusBar style="light" />
+        <View className="flex-1" style={{ backgroundColor: theme.colors.background }}>
+            <StatusBar style={theme.isDark ? "light" : "dark"} />
             <ScrollView className="flex-1 px-6 pt-16 pb-8" showsVerticalScrollIndicator={false}>
 
                 {/* 1. Header & Centerpiece: Financial Health Score */}
                 <Animated.View entering={FadeInDown.duration(600)} className="items-center mb-4">
-                    <Text className="text-[#A7A4A0] font-medium text-sm tracking-wider uppercase mb-6 self-start">
+                    <Text className="font-medium text-sm tracking-wider uppercase mb-6 self-start" style={{ color: theme.colors.textSecondary }}>
                         Financial Intelligence
                     </Text>
 
@@ -106,8 +108,8 @@ export default function DashboardScreen() {
                             strokeWidth={18}
                         />
                     ) : (
-                        <View className="w-[220px] h-[220px] rounded-full border-4 border-[#383633] items-center justify-center">
-                            <Text className="text-[#A7A4A0] font-bold text-sm">Setup salary first</Text>
+                        <View className="w-[220px] h-[220px] rounded-full border-4 items-center justify-center" style={{ borderColor: theme.colors.border }}>
+                            <Text className="font-bold text-sm" style={{ color: theme.colors.textSecondary }}>Setup salary first</Text>
                         </View>
                     )}
                 </Animated.View>
@@ -122,23 +124,28 @@ export default function DashboardScreen() {
                             activeOpacity={0.8}
                             onPress={() => impact.light()}
                             key={card.label}
-                            className="bg-[#383633] rounded-[24px] p-5 border border-[#4E4B47]"
-                            style={{ width: '47%' }}
+                            className="p-5 border"
+                            style={{
+                                width: '47%',
+                                backgroundColor: theme.colors.card,
+                                borderColor: theme.colors.border,
+                                borderRadius: theme.layout.cardBorderRadius
+                            }}
                         >
-                            <View className="w-9 h-9 bg-[#2C2B29] rounded-xl items-center justify-center mb-3 border border-[#5D5A54]">
+                            <View className="w-9 h-9 rounded-xl items-center justify-center mb-3 border" style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}>
                                 <Ionicons name={card.icon} size={18} color={card.color} />
                             </View>
-                            <Text className="text-[#A7A4A0] font-bold uppercase tracking-wider text-[10px] mb-1">
+                            <Text className="font-bold uppercase tracking-wider text-[10px] mb-1" style={{ color: theme.colors.textSecondary }}>
                                 {card.label}
                             </Text>
-                            <Text className="text-[#F2EFEB] font-extrabold text-lg">{card.value}</Text>
+                            <Text className="font-extrabold text-lg" style={{ color: theme.colors.text }}>{card.value}</Text>
                         </TouchableOpacity>
                     ))}
                 </Animated.View>
 
                 {/* 4. Money City Visualization */}
-                <Animated.View entering={FadeInDown.duration(600).delay(200)} className="bg-[#383633] rounded-[32px] p-5 border border-[#4E4B47] mb-8" style={{ width: screenWidth - 48 }}>
-                    <Text className="text-[#A7A4A0] text-[10px] font-bold uppercase tracking-widest mb-6 w-full text-center">
+                <Animated.View entering={FadeInDown.duration(600).delay(200)} className="p-5 border mb-8" style={{ width: screenWidth - 48, backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderRadius: theme.layout.cardBorderRadius }}>
+                    <Text className="text-[10px] font-bold uppercase tracking-widest mb-6 w-full text-center" style={{ color: theme.colors.textSecondary }}>
                         Financial Cityscape
                     </Text>
 
@@ -149,8 +156,8 @@ export default function DashboardScreen() {
 
                 {/* 5. Radar Chart */}
                 {healthScoreData && (
-                    <Animated.View entering={FadeInDown.duration(600).delay(300)} className="bg-[#383633] rounded-[32px] p-4 py-8 border border-[#4E4B47] mb-8 items-center overflow-hidden">
-                        <Text className="text-[#A7A4A0] text-xs font-bold uppercase tracking-widest mb-8 w-full text-center">
+                    <Animated.View entering={FadeInDown.duration(600).delay(300)} className="p-4 py-8 border mb-8 items-center overflow-hidden" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderRadius: theme.layout.cardBorderRadius }}>
+                        <Text className="text-xs font-bold uppercase tracking-widest mb-8 w-full text-center" style={{ color: theme.colors.textSecondary }}>
                             Behavioral Radar
                         </Text>
                         <RadarChart
@@ -163,7 +170,7 @@ export default function DashboardScreen() {
 
                 {/* 6. Financial Timeline */}
                 <Animated.View entering={FadeInDown.duration(600).delay(400)} className="mb-8">
-                    <Text className="text-[#A7A4A0] text-xs font-bold uppercase tracking-widest mb-6 ml-1">
+                    <Text className="text-xs font-bold uppercase tracking-widest mb-6 ml-1" style={{ color: theme.colors.textSecondary }}>
                         Financial Story
                     </Text>
                     <MoneyTimeline events={timelineEvents} />
@@ -171,11 +178,11 @@ export default function DashboardScreen() {
 
                 {/* Recent Transactions List */}
                 <Animated.View entering={FadeInDown.duration(600).delay(500)}>
-                    <Text className="text-[#A7A4A0] text-xs font-bold uppercase tracking-widest mb-4 ml-1">Recent Activity</Text>
+                    <Text className="text-xs font-bold uppercase tracking-widest mb-4 ml-1" style={{ color: theme.colors.textSecondary }}>Recent Activity</Text>
                     {transactions.length === 0 ? (
-                        <View className="bg-[#383633] rounded-[24px] p-8 items-center border border-[#4E4B47]">
-                            <Ionicons name="receipt-outline" size={36} color="#4E4B47" />
-                            <Text className="text-[#65625E] mt-3 font-bold text-sm">No transactions yet</Text>
+                        <View className="p-8 items-center border" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderRadius: theme.layout.cardBorderRadius }}>
+                            <Ionicons name="receipt-outline" size={36} color={theme.colors.icon} />
+                            <Text className="mt-3 font-bold text-sm" style={{ color: theme.colors.textSecondary }}>No transactions yet</Text>
                         </View>
                     ) : (
                         transactions
@@ -183,23 +190,24 @@ export default function DashboardScreen() {
                             .map((tx) => (
                                 <View
                                     key={tx.id}
-                                    className="bg-[#383633] rounded-2xl p-4 mb-3 flex-row items-center border border-[#4E4B47]"
+                                    className="p-4 mb-3 flex-row items-center border"
+                                    style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border, borderRadius: Math.min(theme.layout.cardBorderRadius, 16) }}
                                 >
-                                    <View className="w-10 h-10 bg-[#2C2B29] rounded-xl items-center justify-center mr-3 border border-[#5D5A54]">
+                                    <View className="w-10 h-10 rounded-xl items-center justify-center mr-3 border" style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}>
                                         <Ionicons
                                             name={CATEGORY_ICONS[tx.category] || (tx.type === 'income' ? 'arrow-up-circle-outline' : 'arrow-down-circle-outline')}
                                             size={18}
-                                            color={tx.type === 'income' ? '#4BFF4B' : '#EF6C6C'}
+                                            color={tx.type === 'income' ? theme.colors.success : theme.colors.danger}
                                         />
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="font-bold text-[#F2EFEB] text-sm">{tx.category}</Text>
-                                        <Text className="text-[#65625E] text-xs mt-0.5">
+                                        <Text className="font-bold text-sm" style={{ color: theme.colors.text }}>{tx.category}</Text>
+                                        <Text className="text-xs mt-0.5" style={{ color: theme.colors.textSecondary }}>
                                             {tx.note || new Date(tx.date).toLocaleDateString()}
                                         </Text>
                                     </View>
                                     <View className="flex-row items-center">
-                                        <Text className={`font-extrabold mr-3 ${tx.type === 'income' ? 'text-[#4BFF4B]' : 'text-[#EF6C6C]'}`}>
+                                        <Text className={`font-extrabold mr-3`} style={{ color: tx.type === 'income' ? theme.colors.success : theme.colors.danger }}>
                                             {tx.type === 'income' ? '+' : '-'}₹{formatCurrency(tx.amount)}
                                         </Text>
                                         <TouchableOpacity
@@ -207,9 +215,10 @@ export default function DashboardScreen() {
                                                 impact.medium();
                                                 setExpenseToDelete(tx.id);
                                             }}
-                                            className="w-8 h-8 items-center justify-center bg-[#4A2F2F]/20 rounded-full"
+                                            className="w-8 h-8 items-center justify-center rounded-full"
+                                            style={{ backgroundColor: `${theme.colors.danger}20` }}
                                         >
-                                            <Ionicons name="trash-outline" size={16} color="#EF6C6C" />
+                                            <Ionicons name="trash-outline" size={16} color={theme.colors.danger} />
                                         </TouchableOpacity>
                                     </View>
                                 </View>
@@ -220,7 +229,7 @@ export default function DashboardScreen() {
                 <View className="h-24" />
             </ScrollView>
 
-            
+
 
             <ConfirmDialog
                 visible={!!expenseToDelete}

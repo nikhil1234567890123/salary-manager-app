@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface DashboardStatCardProps {
     /** Card label */
@@ -33,17 +34,18 @@ export default function DashboardStatCard({
     delay = 0,
     onPress,
 }: DashboardStatCardProps) {
+    const theme = useAppTheme();
     const content = (
-        <View className="bg-[#383633] rounded-[24px] p-5 border border-[#4E4B47]">
-            <View className="w-9 h-9 bg-[#2C2B29] rounded-xl items-center justify-center border border-[#5D5A54] mb-3">
+        <View className="rounded-[24px] p-5 border" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+            <View className="w-9 h-9 rounded-xl items-center justify-center border mb-3" style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}>
                 <Ionicons name={icon} size={18} color={color} />
             </View>
-            <Text className="text-[#A7A4A0] text-[10px] font-bold uppercase tracking-widest mb-1">
+            <Text className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: theme.colors.textSecondary }}>
                 {label}
             </Text>
-            <Text className="text-[#F2EFEB] text-lg font-extrabold">{value}</Text>
+            <Text className="text-lg font-extrabold" style={{ color: theme.colors.text }}>{value}</Text>
             {subtitle ? (
-                <Text className="text-[#65625E] text-[10px] mt-1.5 leading-[14px]">
+                <Text className="text-[10px] mt-1.5 leading-[14px]" style={{ color: theme.colors.textSecondary }}>
                     {subtitle}
                 </Text>
             ) : null}

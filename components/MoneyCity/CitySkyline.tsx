@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import CityBuilding from './CityBuilding';
 import { CityBuildingData } from '@/types/money-city';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -18,6 +19,7 @@ interface Props {
 }
 
 const CitySkyline: React.FC<Props> = ({ buildings, containerHeight, onBuildingPress }) => {
+    const theme = useAppTheme();
     const scrollX = useSharedValue(0);
 
     const onScroll = useAnimatedScrollHandler((event) => {
@@ -37,11 +39,11 @@ const CitySkyline: React.FC<Props> = ({ buildings, containerHeight, onBuildingPr
     });
 
     return (
-        <View style={[styles.container, { height: containerHeight }]}>
+        <View style={[styles.container, { height: containerHeight, backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             {/* Background Elements */}
             <Animated.View style={[styles.parallaxContainer, parallaxBgStyle]}>
                 {/* Moon */}
-                <View style={styles.moon} />
+                <View style={[styles.moon, { backgroundColor: theme.colors.text, shadowColor: theme.colors.text }]} />
                 {/* Distant Stars */}
                 {[...Array(15)].map((_, i) => (
                     <View
@@ -51,16 +53,17 @@ const CitySkyline: React.FC<Props> = ({ buildings, containerHeight, onBuildingPr
                             {
                                 top: Math.random() * 100,
                                 left: Math.random() * screenWidth * 3,
-                                opacity: Math.random() * 0.8 + 0.2
+                                opacity: Math.random() * 0.8 + 0.2,
+                                backgroundColor: theme.colors.textSecondary
                             }
                         ]}
                     />
                 ))}
                 {/* Distant skyline silhouette */}
                 <View style={styles.silhouetteContainer}>
-                    <View style={[styles.silhouette, { height: 40, width: 60, left: 100 }]} />
-                    <View style={[styles.silhouette, { height: 60, width: 80, left: 240 }]} />
-                    <View style={[styles.silhouette, { height: 30, width: 40, left: 450 }]} />
+                    <View style={[styles.silhouette, { height: 40, width: 60, left: 100, backgroundColor: theme.colors.border }]} />
+                    <View style={[styles.silhouette, { height: 60, width: 80, left: 240, backgroundColor: theme.colors.border }]} />
+                    <View style={[styles.silhouette, { height: 30, width: 40, left: 450, backgroundColor: theme.colors.border }]} />
                 </View>
             </Animated.View>
 
@@ -82,7 +85,7 @@ const CitySkyline: React.FC<Props> = ({ buildings, containerHeight, onBuildingPr
             </Animated.ScrollView>
 
             {/* Ground/Street */}
-            <View style={styles.ground} />
+            <View style={[styles.ground, { backgroundColor: theme.colors.border }]} />
         </View>
     );
 };
@@ -90,11 +93,9 @@ const CitySkyline: React.FC<Props> = ({ buildings, containerHeight, onBuildingPr
 const styles = StyleSheet.create({
     container: {
         width: '100%',
-        backgroundColor: '#2C2B29', // Match dashboard bg
         borderRadius: 24,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#4E4B47',
     },
     parallaxContainer: {
         position: 'absolute',
@@ -111,9 +112,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#F2EFEB',
         opacity: 0.1,
-        shadowColor: '#F2EFEB',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.5,
         shadowRadius: 10,
@@ -123,7 +122,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         width: 2,
         height: 2,
-        backgroundColor: 'white',
         borderRadius: 1,
     },
     silhouetteContainer: {
@@ -132,7 +130,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     silhouette: {
-        backgroundColor: 'rgba(78, 75, 71, 0.2)',
         borderRadius: 4,
     },
     scrollContent: {
@@ -147,7 +144,6 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: 4,
-        backgroundColor: '#4E4B47',
         opacity: 0.5,
     },
 });

@@ -7,6 +7,7 @@ export interface AppSettings {
     appLockEnabled: boolean;
     offlinePrivacyMode: boolean;
     theme: ThemeType;
+    activeThemeId: import('../types/theme').ThemeId;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -16,4 +17,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
     appLockEnabled: false,
     offlinePrivacyMode: false,
     theme: 'dark',
+    activeThemeId: 'luxuryGold', // Defaulting to one of the premium themes
 };

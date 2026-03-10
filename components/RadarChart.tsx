@@ -7,6 +7,7 @@ import Animated, {
     withSpring,
 } from 'react-native-reanimated';
 import { RadarMetrics } from '@/types/insights';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -30,6 +31,7 @@ const AXES = [
 ];
 
 export default function RadarChart({ metrics, size = 300, onMetricPress }: Props) {
+    const theme = useAppTheme();
     const center = size / 2;
     const radius = (size / 2) - 40; // leaving space for labels
 
@@ -85,7 +87,7 @@ export default function RadarChart({ metrics, size = 300, onMetricPress }: Props
                 <Polygon
                     key={`bg-grid-${i}`}
                     points={points}
-                    stroke="#4E4B47"
+                    stroke={theme.colors.border}
                     strokeWidth={1}
                     fill="transparent"
                 />
@@ -110,7 +112,7 @@ export default function RadarChart({ metrics, size = 300, onMetricPress }: Props
                             y1={center}
                             x2={pt.x}
                             y2={pt.y}
-                            stroke="#4E4B47"
+                            stroke={theme.colors.border}
                             strokeWidth={1}
                         />
                     );
@@ -119,9 +121,9 @@ export default function RadarChart({ metrics, size = 300, onMetricPress }: Props
                 {/* Animated Fill Polygon (now Path for strict Android support) */}
                 <AnimatedPath
                     animatedProps={animatedProps}
-                    fill="#D3A77A"
+                    fill={theme.colors.primary}
                     fillOpacity={0.4}
-                    stroke="#D3A77A"
+                    stroke={theme.colors.primary}
                     strokeWidth={2}
                     strokeLinejoin="round"
                 />
@@ -136,7 +138,7 @@ export default function RadarChart({ metrics, size = 300, onMetricPress }: Props
                             cx={pt.x}
                             cy={pt.y}
                             r={5}
-                            fill="#D3A77A"
+                            fill={theme.colors.primary}
                             onPress={() => onMetricPress?.(axis.label, metricVal)}
                         />
                     );
@@ -161,7 +163,7 @@ export default function RadarChart({ metrics, size = 300, onMetricPress }: Props
                             onMetricPress?.(axis.label, metricVal);
                         }}
                     >
-                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#A7A4A0', textAlign: 'center' }}>
+                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: theme.colors.textSecondary, textAlign: 'center' }}>
                             {axis.label}
                         </Text>
                     </TouchableOpacity>

@@ -11,6 +11,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { CityBuildingData } from '@/types/money-city';
 import { formatCurrency } from '@/utils/formatters';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface Props {
     data: CityBuildingData;
@@ -19,6 +20,7 @@ interface Props {
 }
 
 const CityBuilding: React.FC<Props> = ({ data, onPress, index }) => {
+    const theme = useAppTheme();
     const heightAnim = useSharedValue(0);
     const glowAnim = useSharedValue(0.3);
 
@@ -48,6 +50,8 @@ const CityBuilding: React.FC<Props> = ({ data, onPress, index }) => {
         opacity: glowAnim.value,
     }));
 
+    const styles = createStyles(theme);
+
     return (
         <TouchableOpacity
             activeOpacity={0.8}
@@ -69,7 +73,7 @@ const CityBuilding: React.FC<Props> = ({ data, onPress, index }) => {
                                 {[1, 2].map((j) => (
                                     <Animated.View
                                         key={j}
-                                        style={[styles.window, glowStyle]}
+                                        style={[styles.window, glowStyle, { backgroundColor: theme.colors.background + 'B3' }]}
                                     />
                                 ))}
                             </View>
@@ -84,10 +88,10 @@ const CityBuilding: React.FC<Props> = ({ data, onPress, index }) => {
 
                 {/* Labels below building */}
                 <View style={styles.labels}>
-                    <Text style={styles.categoryText} numberOfLines={1}>
+                    <Text style={[styles.categoryText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                         {data.category}
                     </Text>
-                    <Text style={styles.amountText}>
+                    <Text style={[styles.amountText, { color: theme.colors.text }]}>
                         ₹{formatCurrency(data.amount)}
                     </Text>
                 </View>
@@ -96,7 +100,7 @@ const CityBuilding: React.FC<Props> = ({ data, onPress, index }) => {
     );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
     container: {
         marginHorizontal: 8,
         alignItems: 'center',
@@ -114,7 +118,7 @@ const styles = StyleSheet.create({
         position: 'relative',
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: theme.colors.border,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
@@ -132,7 +136,6 @@ const styles = StyleSheet.create({
     window: {
         width: 6,
         height: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.6)',
         marginHorizontal: 4,
         borderRadius: 1,
     },
@@ -150,13 +153,13 @@ const styles = StyleSheet.create({
         width: 60,
     },
     categoryText: {
-        color: '#A7A4A0',
+        color: theme.colors.textSecondary,
         fontSize: 10,
         fontWeight: 'bold',
         textAlign: 'center',
     },
     amountText: {
-        color: '#F2EFEB',
+        color: theme.colors.text,
         fontSize: 9,
         fontWeight: '600',
         marginTop: 2,

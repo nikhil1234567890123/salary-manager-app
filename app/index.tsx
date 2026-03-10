@@ -15,11 +15,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 const { height } = Dimensions.get('window');
 
 export default function SplashScreen() {
     const router = useRouter();
+    const theme = useAppTheme();
     const [checked, setChecked] = useState(false);
 
     // Check if onboarding is complete — if not, redirect
@@ -139,48 +141,48 @@ export default function SplashScreen() {
     }));
 
     return (
-        <View className="flex-1 bg-[#2C2B29] items-center justify-center px-6">
-            <StatusBar style="light" />
+        <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: theme.colors.background }}>
+            <StatusBar style={theme.isDark ? "light" : "dark"} />
 
             {/* Premium 3D Matte Neo-morphic Background */}
             <View className="absolute inset-0 z-0 overflow-hidden">
                 <Animated.View
-                    style={[shape2Style, { width: height * 1.2, height: height * 1.2, borderRadius: height / 2 }]}
-                    className="absolute -top-[15%] -right-[40%] bg-[#D3A77A] opacity-15 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                    style={[shape2Style, { width: height * 1.2, height: height * 1.2, borderRadius: height / 2, backgroundColor: theme.colors.primary }]}
+                    className="absolute -top-[15%] -right-[40%] opacity-15 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                 />
                 <Animated.View
-                    style={[shape1Style]}
-                    className="absolute top-[12%] left-[15%] w-20 h-20 rounded-full bg-[#4A4640] justify-center items-center border border-[#5D5A54] shadow-[0_15px_20px_rgba(0,0,0,0.8)]"
+                    style={[shape1Style, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+                    className="absolute top-[12%] left-[15%] w-20 h-20 rounded-full justify-center items-center border shadow-[0_15px_20px_rgba(0,0,0,0.8)]"
                 >
-                    <View className="w-[60px] h-[60px] rounded-full bg-[#35332F] border-2 border-[#A87D56]" />
+                    <View className="w-[60px] h-[60px] rounded-full border-2" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.primary }} />
                 </Animated.View>
                 {/* Floating Splash Coin */}
                 <Animated.View
-                    style={[coin1Style, { opacity: logoScale }]} // fade in with logo
-                    className="absolute bottom-[25%] -right-[8%] w-24 h-24 rounded-full bg-[#383633] justify-center items-center shadow-[0_15px_30px_rgba(0,0,0,0.6)] border-[4px] border-[#A87D56]"
+                    style={[coin1Style, { opacity: logoScale, backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]} // fade in with logo
+                    className="absolute bottom-[25%] -right-[8%] w-24 h-24 rounded-full justify-center items-center shadow-[0_15px_30px_rgba(0,0,0,0.6)] border-[4px]"
                 >
-                    <View className="w-[70px] h-[70px] rounded-full border border-[#5D5A54] justify-center items-center bg-[#2C2B29]">
-                        <Text className="text-[#D3A77A] font-black text-3xl">₹</Text>
+                    <View className="w-[70px] h-[70px] rounded-full border justify-center items-center" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+                        <Text className="font-black text-3xl" style={{ color: theme.colors.primary }}>₹</Text>
                     </View>
                 </Animated.View>
-                <View className="absolute inset-0 bg-[#2C2B29]/40" />
+                <View className="absolute inset-0" style={{ backgroundColor: theme.colors.background + '66' }} />
             </View>
 
 
             <Animated.View
-                style={[logoStyle, { position: 'absolute' }]}
-                className="w-28 h-28 bg-[#3E3A35] rounded-[36px] items-center justify-center shadow-2xl shadow-[#D3A77A]/20 border border-[#D3A77A] z-20 overflow-hidden"
+                style={[logoStyle, { position: 'absolute', backgroundColor: theme.colors.card, borderColor: theme.colors.primary }]}
+                className="w-28 h-28 rounded-[36px] items-center justify-center shadow-2xl z-20 overflow-hidden border"
             >
-                <Ionicons name="wallet" size={48} color="#D3A77A" />
+                <Ionicons name="wallet" size={48} color={theme.colors.primary} />
             </Animated.View>
 
             {/* Content Container (Fades in below the logo's new moved position) */}
             <Animated.View style={textStyle} className="items-center z-10 w-full mt-28">
-                <Text className="text-5xl font-black text-[#D3A77A] tracking-tight mb-4 text-center">
+                <Text className="text-5xl font-black tracking-tight mb-4 text-center" style={{ color: theme.colors.primary }}>
                     Salary Manager
                 </Text>
 
-                <Text className="text-[#A7A4A0] text-center text-[15px] px-4 leading-[22px]">
+                <Text className="text-center text-[15px] px-4 leading-[22px]" style={{ color: theme.colors.textSecondary }}>
                     Organize, track, and master your monthly stipend with premium precision.
                 </Text>
             </Animated.View>
@@ -192,14 +194,14 @@ export default function SplashScreen() {
                 <TouchableOpacity
                     onPress={() => router.replace("/(tabs)")}
                     activeOpacity={0.8}
-                    className="bg-[#D3A77A] rounded-full shadow-xl shadow-black/60 mb-4"
-                    style={{ elevation: 10 }}
+                    className="rounded-full shadow-xl shadow-black/60 mb-4"
+                    style={{ elevation: 10, backgroundColor: theme.colors.primary }}
                 >
-                    <View className="py-5 rounded-full items-center justify-center flex-row bg-[#D1A677] border-t border-t-[#EACFA7] border-b border-b-[#A87D56]">
-                        <Text className="text-[#2B231A] font-extrabold text-[15px] tracking-wide mr-2">
+                    <View className="py-5 rounded-full items-center justify-center flex-row border-t border-b" style={{ backgroundColor: theme.colors.primary, borderTopColor: theme.colors.primary + '33', borderBottomColor: theme.colors.primary + '66' }}>
+                        <Text className="font-extrabold text-[15px] tracking-wide mr-2" style={{ color: theme.colors.background }}>
                             Get Started
                         </Text>
-                        <Ionicons name="arrow-forward" size={18} color="#2B231A" />
+                        <Ionicons name="arrow-forward" size={18} color={theme.colors.background} />
                     </View>
                 </TouchableOpacity>
 
@@ -208,7 +210,7 @@ export default function SplashScreen() {
                     activeOpacity={0.7}
                     className="items-center justify-center py-2"
                 >
-                    <Text className="text-[#A7A4A0] font-bold text-sm tracking-widest uppercase">
+                    <Text className="font-bold text-sm tracking-widest uppercase" style={{ color: theme.colors.textSecondary }}>
                         Sign In
                     </Text>
                 </TouchableOpacity>

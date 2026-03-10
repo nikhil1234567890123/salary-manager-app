@@ -19,37 +19,42 @@ import Animated, {
     FadeInDown,
     FadeInUp
 } from "react-native-reanimated";
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 const { height, width } = Dimensions.get('window');
 
-const PremiumInput = ({ label, value, onChangeText, placeholder, icon, delay = 0, onCalculatorPress }: any) => {
+const PremiumInput = ({ label, value, onChangeText, placeholder, icon, delay = 0, onCalculatorPress, theme }: any) => {
     const [isFocused, setIsFocused] = useState(false);
     return (
         <Animated.View entering={FadeInDown.duration(600).delay(delay)} className="mb-6">
-            <Text className="text-[#A7A4A0] text-xs font-bold uppercase tracking-widest mb-2 ml-1">{label}</Text>
+            <Text className="text-xs font-bold uppercase tracking-widest mb-2 ml-1" style={{ color: theme.colors.textSecondary }}>{label}</Text>
             <View
-                className={`flex-row items-center bg-[#383633] rounded-[24px] px-5 py-[18px] border shadow-lg ${isFocused ? 'border-[#A87D56] bg-[#3E3A35] shadow-black/40' : 'border-[#4E4B47] shadow-black/20'
-                    }`}
-                style={{ elevation: isFocused ? 8 : 4 }}
+                className={`flex-row items-center rounded-[24px] px-5 py-[18px] border shadow-lg ${isFocused ? 'shadow-black/40' : 'shadow-black/20'}`}
+                style={{
+                    elevation: isFocused ? 8 : 4,
+                    backgroundColor: isFocused ? theme.colors.surface : theme.colors.card,
+                    borderColor: isFocused ? theme.colors.primary : theme.colors.border
+                }}
             >
                 <View className="mr-3">
-                    <Ionicons name={icon} size={20} color={isFocused ? '#D3A77A' : '#A7A4A0'} />
+                    <Ionicons name={icon} size={20} color={isFocused ? theme.colors.primary : theme.colors.icon} />
                 </View>
-                <Text className="text-xl font-bold text-[#A87D56] mr-2">₹</Text>
+                <Text className="text-xl font-bold mr-2" style={{ color: theme.colors.primary }}>₹</Text>
                 <TextInput
-                    className="flex-1 text-[#F2EFEB] text-xl font-bold p-0"
+                    className="flex-1 text-xl font-bold p-0"
+                    style={{ color: theme.colors.text }}
                     placeholder={placeholder}
-                    placeholderTextColor="#65625E"
+                    placeholderTextColor={theme.colors.textSecondary + '80'}
                     keyboardType="numeric"
                     value={value}
                     onChangeText={onChangeText}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
-                    selectionColor="#EACFA7"
+                    selectionColor={theme.colors.primary}
                 />
                 {onCalculatorPress && (
-                    <TouchableOpacity onPress={onCalculatorPress} className="ml-2 bg-[#4E4B47] p-2 rounded-full border border-[#5D5A54]">
-                        <Ionicons name="calculator" size={18} color="#D3A77A" />
+                    <TouchableOpacity onPress={onCalculatorPress} className="ml-2 p-2 rounded-full border" style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}>
+                        <Ionicons name="calculator" size={18} color={theme.colors.primary} />
                     </TouchableOpacity>
                 )}
             </View>
@@ -57,7 +62,7 @@ const PremiumInput = ({ label, value, onChangeText, placeholder, icon, delay = 0
     );
 };
 
-const CalculatorOverlay = ({ isVisible, onClose, onApply }: { isVisible: boolean, onClose: () => void, onApply: (val: string) => void }) => {
+const CalculatorOverlay = ({ isVisible, onClose, onApply, theme }: { isVisible: boolean, onClose: () => void, onApply: (val: string) => void, theme: any }) => {
     const [expr, setExpr] = useState("");
     const [result, setResult] = useState("");
 
@@ -120,20 +125,20 @@ const CalculatorOverlay = ({ isVisible, onClose, onApply }: { isVisible: boolean
             {/* Backdrop */}
             <TouchableOpacity className="absolute -top-[100vh] left-0 right-0 h-[100vh]" onPress={onClose} activeOpacity={1} />
 
-            <View className="bg-[#2C2B29] rounded-[32px] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)] border-[2px] border-[#4E4B47] w-full max-w-sm self-center">
+            <View className="rounded-[32px] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)] border-[2px] w-full max-w-sm self-center" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
 
                 {/* Close Button & Title */}
                 <View className="flex-row justify-between items-center mb-4">
-                    <Text className="text-[#A7A4A0] text-sm font-bold uppercase tracking-widest">Fixed Outflows Calc</Text>
-                    <TouchableOpacity onPress={onClose} className="p-2 bg-[#383633] rounded-full border border-[#4E4B47]">
-                        <Ionicons name="close" size={20} color="#A7A4A0" />
+                    <Text className="text-sm font-bold uppercase tracking-widest" style={{ color: theme.colors.textSecondary }}>Fixed Outflows Calc</Text>
+                    <TouchableOpacity onPress={onClose} className="p-2 rounded-full border" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+                        <Ionicons name="close" size={20} color={theme.colors.icon} />
                     </TouchableOpacity>
                 </View>
 
                 {/* Number Display */}
-                <View className="bg-[#1E1D1C] rounded-[24px] p-5 mb-6 border border-[#3E3A35] items-end min-h-[100px] justify-center shadow-inner">
-                    <Text className="text-[#A7A4A0] text-lg font-medium mb-1 tracking-widest">{expr || "0"}</Text>
-                    <Text className="text-[40px] font-black text-[#D3A77A] leading-[48px]">
+                <View className="rounded-[24px] p-5 mb-6 border items-end min-h-[100px] justify-center shadow-inner" style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}>
+                    <Text className="text-lg font-medium mb-1 tracking-widest" style={{ color: theme.colors.textSecondary }}>{expr || "0"}</Text>
+                    <Text className="text-[40px] font-black leading-[48px]" style={{ color: theme.colors.primary }}>
                         {result ? `₹${formatCurrency(parseFloat(result))}` : "₹0"}
                     </Text>
                 </View>
@@ -151,11 +156,11 @@ const CalculatorOverlay = ({ isVisible, onClose, onApply }: { isVisible: boolean
                                                 <TouchableOpacity
                                                     onPress={handleApply}
                                                     activeOpacity={0.8}
-                                                    className="w-full bg-[#D3A77A] rounded-[20px] items-center justify-center border border-[#EACFA7] shadow-[0_5px_15px_rgba(211,167,122,0.3)] absolute top-0 left-0"
-                                                    style={{ height: '220%' }}
+                                                    className="w-full rounded-[20px] items-center justify-center border shadow-[0_5px_15px_rgba(0,0,0,0.3)] absolute top-0 left-0"
+                                                    style={{ height: '220%', backgroundColor: theme.colors.primary, borderColor: theme.colors.primary + '66' }}
                                                 >
-                                                    <Ionicons name="checkmark-done" size={28} color="#2B231A" />
-                                                    <Text className="text-[#2B231A] font-black text-xs uppercase mt-1">Apply</Text>
+                                                    <Ionicons name="checkmark-done" size={28} color={theme.colors.background} />
+                                                    <Text className="font-black text-xs uppercase mt-1" style={{ color: theme.colors.background }}>Apply</Text>
                                                 </TouchableOpacity>
                                             </View>
                                         )
@@ -172,17 +177,20 @@ const CalculatorOverlay = ({ isVisible, onClose, onApply }: { isVisible: boolean
                                         onPress={() => handlePress(btn)}
                                         activeOpacity={0.7}
                                         className={`w-[22%] aspect-square rounded-[20px] items-center justify-center border ${isOperator
-                                            ? 'bg-[#3E3A35] border-[#D3A77A]/30'
+                                            ? 'bg-opacity-20'
                                             : isAction
-                                                ? 'bg-[#4A2F2F] border-[#663A3A]'
-                                                : 'bg-[#383633] border-[#4E4B47]'
+                                                ? 'bg-opacity-20'
+                                                : ''
                                             }`}
+                                        style={{
+                                            backgroundColor: isOperator ? theme.colors.primary + '20' : isAction ? theme.colors.danger + '20' : theme.colors.card,
+                                            borderColor: isOperator ? theme.colors.primary + '40' : isAction ? theme.colors.danger + '40' : theme.colors.border
+                                        }}
                                     >
                                         {btn === '⌫' ? (
-                                            <Ionicons name="backspace-outline" size={24} color="#EF6C6C" />
+                                            <Ionicons name="backspace-outline" size={24} color={theme.colors.danger} />
                                         ) : (
-                                            <Text className={`text-2xl font-black ${isOperator ? 'text-[#D3A77A]' : isAction ? 'text-[#EF6C6C]' : 'text-[#F2EFEB]'
-                                                }`}>{btn}</Text>
+                                            <Text className="text-2xl font-black" style={{ color: isOperator ? theme.colors.primary : isAction ? theme.colors.danger : theme.colors.text }}>{btn}</Text>
                                         )}
                                     </TouchableOpacity>
                                 );
@@ -197,6 +205,7 @@ const CalculatorOverlay = ({ isVisible, onClose, onApply }: { isVisible: boolean
 
 export default function SalarySetupScreen() {
     const router = useRouter();
+    const theme = useAppTheme();
     const { salary: existingSalary, setSalaryConfig } = useFinance();
     const [salary, setSalary] = useState(existingSalary ? existingSalary.monthlySalary.toString() : "");
     const [fixedExpenses, setFixedExpenses] = useState(existingSalary ? existingSalary.fixedExpenses.toString() : "");
@@ -287,39 +296,40 @@ export default function SalarySetupScreen() {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            className="flex-1 bg-[#2C2B29]"
+            className="flex-1"
+            style={{ backgroundColor: theme.colors.background }}
         >
-            <StatusBar style="light" />
+            <StatusBar style={theme.isDark ? "light" : "dark"} />
 
             {/* Premium 3D Matte Background Elements */}
             <View className="absolute inset-0 z-0 overflow-hidden">
                 <Animated.View
-                    style={[shape2Style, { width: height, height: height, borderRadius: height / 2 }]}
-                    className="absolute -top-[20%] -left-[30%] bg-[#D3A77A] opacity-[0.08] blur-3xl"
+                    style={[shape2Style, { width: height, height: height, borderRadius: height / 2, backgroundColor: theme.colors.primary }]}
+                    className="absolute -top-[20%] -left-[30%] opacity-[0.08] blur-3xl"
                 />
 
                 {/* Floating Coins */}
                 <Animated.View
-                    style={coin1Style}
-                    className="absolute top-[15%] right-[5%] w-16 h-16 rounded-full bg-[#383633] justify-center items-center shadow-[0_10px_25px_rgba(0,0,0,0.5)] border-[3px] border-[#A87D56]"
+                    style={[coin1Style, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primary }]}
+                    className="absolute top-[15%] right-[5%] w-16 h-16 rounded-full justify-center items-center shadow-[0_10px_25px_rgba(0,0,0,0.5)] border-[3px]"
                 >
-                    <View className="w-[45px] h-[45px] rounded-full border border-[#5D5A54] justify-center items-center bg-[#2C2B29]">
-                        <Text className="text-[#D3A77A] font-black text-xl">₹</Text>
+                    <View className="w-[45px] h-[45px] rounded-full border justify-center items-center" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
+                        <Text className="font-black text-xl" style={{ color: theme.colors.primary }}>₹</Text>
                     </View>
                 </Animated.View>
 
                 <Animated.View
-                    style={coin2Style}
-                    className="absolute bottom-[25%] -left-[8%] w-24 h-24 rounded-full bg-[#D3A77A] justify-center items-center shadow-[0_15px_30px_rgba(211,167,122,0.2)] border-[4px] border-[#EACFA7]"
+                    style={[coin2Style, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary + '66' }]}
+                    className="absolute bottom-[25%] -left-[8%] w-24 h-24 rounded-full justify-center items-center shadow-[0_15px_30px_rgba(0,0,0,0.2)] border-[4px]"
                 >
-                    <View className="w-[70px] h-[70px] rounded-full border border-[#B88758] justify-center items-center">
-                        <Ionicons name="pie-chart" size={32} color="#6C4B2B" />
+                    <View className="w-[70px] h-[70px] rounded-full border justify-center items-center" style={{ borderColor: theme.colors.background + '40' }}>
+                        <Ionicons name="pie-chart" size={32} color={theme.colors.background} />
                     </View>
                 </Animated.View>
 
                 <Animated.View
-                    style={[shape1Style]}
-                    className="absolute top-[40%] right-[10%] w-10 h-10 rounded-full bg-[#4A4640] border border-[#5D5A54] shadow-lg opacity-60"
+                    style={[shape1Style, { backgroundColor: theme.colors.icon, borderColor: theme.colors.border }]}
+                    className="absolute top-[40%] right-[10%] w-10 h-10 rounded-full border shadow-lg opacity-60"
                 />
             </View>
 
@@ -332,7 +342,7 @@ export default function SalarySetupScreen() {
                 {/* Header */}
                 <Animated.View entering={FadeInDown.duration(600)} className="mb-10">
                     <View className="mb-4">
-                        <View className="w-12 h-12 bg-[#3E3A35] rounded-[16px] items-center justify-center border border-[#D3A77A]/30 overflow-hidden">
+                        <View className="w-12 h-12 rounded-[16px] items-center justify-center border overflow-hidden" style={{ backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
                             <Image
                                 source={require("../assets/images/app_logo_fixed.png")}
                                 style={{ width: "100%", height: "100%" }}
@@ -340,9 +350,9 @@ export default function SalarySetupScreen() {
                             />
                         </View>
                     </View>
-                    <Text className="text-[#A7A4A0] text-sm uppercase tracking-widest font-bold mb-2">Initialization</Text>
-                    <Text className="text-4xl font-black text-[#D3A77A] leading-[44px]">Config{"\n"}Stipend.</Text>
-                    <Text className="text-[#A7A4A0] mt-3 leading-relaxed text-[15px]">
+                    <Text className="text-sm uppercase tracking-widest font-bold mb-2" style={{ color: theme.colors.textSecondary }}>Initialization</Text>
+                    <Text className="text-4xl font-black leading-[44px]" style={{ color: theme.colors.primary }}>Config{"\n"}Stipend.</Text>
+                    <Text className="mt-3 leading-relaxed text-[15px]" style={{ color: theme.colors.textSecondary }}>
                         Input your core parameters to calculate your dynamic daily allowance.
                     </Text>
                 </Animated.View>
@@ -356,6 +366,7 @@ export default function SalarySetupScreen() {
                         onChangeText={setSalary}
                         icon="wallet"
                         delay={100}
+                        theme={theme}
                     />
 
                     <PremiumInput
@@ -366,6 +377,7 @@ export default function SalarySetupScreen() {
                         icon="home"
                         delay={200}
                         onCalculatorPress={() => setIsCalcVisible(true)}
+                        theme={theme}
                     />
 
                     <PremiumInput
@@ -375,6 +387,7 @@ export default function SalarySetupScreen() {
                         onChangeText={setSavingsGoal}
                         icon="trending-up"
                         delay={300}
+                        theme={theme}
                     />
 
                     <PremiumInput
@@ -384,31 +397,36 @@ export default function SalarySetupScreen() {
                         onChangeText={setCreditDate}
                         icon="calendar"
                         delay={400}
+                        theme={theme}
                     />
                 </View>
 
                 {/* Live Calculation Result Card */}
                 <Animated.View entering={FadeInUp.duration(600).delay(500)} className="mt-6 mb-8">
-                    <View className={`rounded-[24px] p-6 border shadow-xl flex-row items-center justify-between transition-colors duration-300 ${salaryNum > 0 ? 'bg-[#3E3A35] border-[#D3A77A]/30 shadow-black/40' : 'bg-[#2C2B29] border-[#4E4B47] shadow-none'
-                        }`}>
+                    <View
+                        className="rounded-[24px] p-6 border shadow-xl flex-row items-center justify-between"
+                        style={{
+                            backgroundColor: salaryNum > 0 ? theme.colors.surface : theme.colors.background,
+                            borderColor: salaryNum > 0 ? theme.colors.primary + '33' : theme.colors.border
+                        }}
+                    >
                         <View>
-                            <Text className={`text-xs font-bold uppercase tracking-widest mb-1 ${salaryNum > 0 ? 'text-[#D3A77A]' : 'text-[#65625E]'}`}>
+                            <Text className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: salaryNum > 0 ? theme.colors.primary : theme.colors.textSecondary }}>
                                 Daily Limit
                             </Text>
-                            <Text className={`text-4xl font-black ${salaryNum > 0 ? 'text-[#F2EFEB]' : 'text-[#65625E]'}`}>
+                            <Text className="text-4xl font-black" style={{ color: salaryNum > 0 ? theme.colors.text : theme.colors.textSecondary + '80' }}>
                                 ₹{formatCurrency(dailySafeSpend)}
                             </Text>
                         </View>
-                        <View className={`w-12 h-12 rounded-full items-center justify-center border ${salaryNum > 0 ? 'bg-[#D3A77A]/10 border-[#D3A77A]/30' : 'bg-[#383633] border-[#4E4B47]'
-                            }`}>
-                            <Ionicons name="checkmark-done" size={24} color={salaryNum > 0 ? '#D3A77A' : '#65625E'} />
+                        <View className="w-12 h-12 rounded-full items-center justify-center border" style={{ backgroundColor: salaryNum > 0 ? theme.colors.primary + '1A' : theme.colors.card, borderColor: salaryNum > 0 ? theme.colors.primary + '33' : theme.colors.border }}>
+                            <Ionicons name="checkmark-done" size={24} color={salaryNum > 0 ? theme.colors.primary : theme.colors.icon} />
                         </View>
                     </View>
                 </Animated.View>
             </ScrollView>
 
             {/* Premium Action Button Fixed at Bottom */}
-            <View pointerEvents="box-none" className="absolute bottom-0 left-0 right-0 p-6 pt-2 bg-gradient-to-t from-[#2C2B29] to-transparent z-50">
+            <View pointerEvents="box-none" className="absolute bottom-0 left-0 right-0 p-6 pt-2 z-50">
                 <Animated.View entering={FadeInUp.duration(600).delay(600)}>
                     <TouchableOpacity
                         onPress={handleFinalize}
@@ -417,14 +435,19 @@ export default function SalarySetupScreen() {
                         className={`rounded-full shadow-[0_10px_25px_rgba(0,0,0,0.6)] ${salaryNum <= 0 ? 'opacity-50' : 'opacity-100'}`}
                         style={{ elevation: 15 }}
                     >
-                        <View className={`py-5 rounded-full items-center justify-center flex-row border ${salaryNum > 0
-                            ? 'bg-[#D1A677] border-t-[#EACFA7] border-b-[#A87D56]'
-                            : 'bg-[#4E4B47] border-[#5D5A54]'
-                            }`}>
-                            <Text className={`font-extrabold text-[15px] tracking-wide mr-2 ${salaryNum > 0 ? 'text-[#2B231A]' : 'text-[#A7A4A0]'}`}>
+                        <View
+                            className="py-5 rounded-full items-center justify-center flex-row border"
+                            style={{
+                                backgroundColor: salaryNum > 0 ? theme.colors.primary : theme.colors.card,
+                                borderTopColor: theme.colors.primary + '33',
+                                borderBottomColor: theme.colors.primary + '66',
+                                borderColor: theme.colors.border
+                            }}
+                        >
+                            <Text className="font-extrabold text-[15px] tracking-wide mr-2" style={{ color: salaryNum > 0 ? theme.colors.background : theme.colors.textSecondary }}>
                                 Finalize Setup
                             </Text>
-                            <Ionicons name="arrow-forward" size={18} color={salaryNum > 0 ? '#2B231A' : '#A7A4A0'} />
+                            <Ionicons name="arrow-forward" size={18} color={salaryNum > 0 ? theme.colors.background : theme.colors.textSecondary} />
                         </View>
                     </TouchableOpacity>
                 </Animated.View>
@@ -437,6 +460,7 @@ export default function SalarySetupScreen() {
                     setFixedExpenses(val);
                     setIsCalcVisible(false);
                 }}
+                theme={theme}
             />
         </KeyboardAvoidingView>
     );

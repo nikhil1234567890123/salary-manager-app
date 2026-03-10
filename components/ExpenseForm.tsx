@@ -9,6 +9,7 @@ import {
     Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface ExpenseFormProps {
     onSubmit: (expense: { amount: number; category: string; note: string; date: string }) => void;
@@ -26,6 +27,7 @@ const CATEGORIES = [
 ];
 
 export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
+    const theme = useAppTheme();
     const [amount, setAmount] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
     const [note, setNote] = useState('');
@@ -60,25 +62,26 @@ export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
             {/* Amount Input */}
             <View className="mb-6">
-                <Text className="text-gray-700 font-bold text-sm uppercase tracking-wider mb-2">
+                <Text className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: theme.colors.textSecondary }}>
                     Amount (₹)
                 </Text>
-                <View className="bg-gray-50 rounded-2xl flex-row items-center px-5 py-1 border border-gray-200">
-                    <Text className="text-indigo-600 font-bold text-xl mr-2">₹</Text>
+                <View className="rounded-2xl flex-row items-center px-5 py-1 border" style={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border }}>
+                    <Text className="font-bold text-xl mr-2" style={{ color: theme.colors.danger }}>₹</Text>
                     <TextInput
                         value={amount}
                         onChangeText={setAmount}
                         placeholder="0"
-                        placeholderTextColor="#9ca3af"
+                        placeholderTextColor={theme.colors.textSecondary}
                         keyboardType="decimal-pad"
-                        className="flex-1 text-3xl font-extrabold text-gray-900 py-3"
+                        className="flex-1 text-3xl font-extrabold py-3"
+                        style={{ color: theme.colors.text }}
                     />
                 </View>
             </View>
 
             {/* Category Selection */}
             <View className="mb-6">
-                <Text className="text-gray-700 font-bold text-sm uppercase tracking-wider mb-3">
+                <Text className="font-bold text-sm uppercase tracking-wider mb-3" style={{ color: theme.colors.textSecondary }}>
                     Category
                 </Text>
                 <View className="flex-row flex-wrap" style={{ gap: 10 }}>
@@ -89,19 +92,20 @@ export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
                                 key={cat.label}
                                 onPress={() => setSelectedCategory(cat.label)}
                                 activeOpacity={0.7}
-                                className={`rounded-2xl px-4 py-3 flex-row items-center border ${isSelected
-                                        ? 'bg-indigo-600 border-indigo-600'
-                                        : 'bg-white border-gray-200'
-                                    }`}
+                                className="rounded-2xl px-4 py-3 flex-row items-center border"
+                                style={{
+                                    backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface,
+                                    borderColor: isSelected ? theme.colors.primary : theme.colors.border
+                                }}
                             >
                                 <Ionicons
                                     name={cat.icon}
                                     size={16}
-                                    color={isSelected ? '#fff' : cat.color}
+                                    color={isSelected ? theme.colors.background : cat.color}
                                 />
                                 <Text
-                                    className={`ml-2 font-semibold text-sm ${isSelected ? 'text-white' : 'text-gray-700'
-                                        }`}
+                                    className="ml-2 font-semibold text-sm"
+                                    style={{ color: isSelected ? theme.colors.background : theme.colors.textSecondary }}
                                 >
                                     {cat.label}
                                 </Text>
@@ -113,31 +117,33 @@ export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
 
             {/* Note Input */}
             <View className="mb-6">
-                <Text className="text-gray-700 font-bold text-sm uppercase tracking-wider mb-2">
+                <Text className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: theme.colors.textSecondary }}>
                     Note (optional)
                 </Text>
                 <TextInput
                     value={note}
                     onChangeText={setNote}
                     placeholder="e.g. Coffee with friends"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={theme.colors.textSecondary}
                     multiline
                     numberOfLines={2}
-                    className="bg-gray-50 rounded-2xl px-5 py-4 text-gray-900 text-base border border-gray-200"
+                    className="rounded-2xl px-5 py-4 text-base border"
+                    style={{ backgroundColor: theme.colors.surface, color: theme.colors.text, borderColor: theme.colors.border }}
                 />
             </View>
 
             {/* Date Input */}
             <View className="mb-8">
-                <Text className="text-gray-700 font-bold text-sm uppercase tracking-wider mb-2">
+                <Text className="font-bold text-sm uppercase tracking-wider mb-2" style={{ color: theme.colors.textSecondary }}>
                     Date
                 </Text>
                 <TextInput
                     value={date}
                     onChangeText={setDate}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#9ca3af"
-                    className="bg-gray-50 rounded-2xl px-5 py-4 text-gray-900 text-base border border-gray-200"
+                    placeholderTextColor={theme.colors.textSecondary}
+                    className="rounded-2xl px-5 py-4 text-base border"
+                    style={{ backgroundColor: theme.colors.surface, color: theme.colors.text, borderColor: theme.colors.border }}
                 />
             </View>
 
@@ -147,8 +153,8 @@ export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
                 activeOpacity={0.8}
                 className="rounded-2xl py-4 items-center justify-center shadow-lg mb-8"
                 style={{
-                    backgroundColor: '#4F46E5',
-                    shadowColor: '#4F46E5',
+                    backgroundColor: theme.colors.primary,
+                    shadowColor: theme.colors.primary,
                     shadowOffset: { width: 0, height: 8 },
                     shadowOpacity: 0.3,
                     shadowRadius: 12,
@@ -156,8 +162,8 @@ export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
                 }}
             >
                 <View className="flex-row items-center">
-                    <Ionicons name="add-circle-outline" size={22} color="#fff" />
-                    <Text className="text-white font-bold text-lg ml-2">Add Expense</Text>
+                    <Ionicons name="add-circle-outline" size={22} color={theme.colors.background} />
+                    <Text className="font-bold text-lg ml-2" style={{ color: theme.colors.background }}>Add Expense</Text>
                 </View>
             </TouchableOpacity>
         </ScrollView>

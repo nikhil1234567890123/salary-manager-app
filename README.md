@@ -131,7 +131,7 @@ Salary Manager follows a strictly modular, service-oriented architecture designe
 * **Lazy Loading Notifications:** Never use top-level static imports for `expo-notifications`. Load it via the `getNotifications()` helper to prevent boot-time crashes in Expo Go.
 * **Permissions:** The `READ_SMS` permission is highly sensitive. Specific justification will be required when deploying to the Google Play Store to avoid rejection.
 
----
+----
 
 ## 🚀 Deployment
 
